@@ -1,0 +1,48 @@
+name: Daily feedback report
+
+on:
+  schedule:
+    # 14:00 UTC daily ≈ morning in North America. Adjust to taste.
+    - cron: '0 14 * * *'
+  workflow_dispatch: {}   # lets you run it manually from the Actions tab
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate report
+        id: gen
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set +e
+          node scripts/feedback-report.mjs --if-new > report.md
+          code=$?
+          set -e
+          if [ "$code" = "78" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No new feedback — skipping issue."
+          elif [ "$code" != "0" ]; then
+            exit "$code"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post report as issue
+        if: steps.gen.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Feedback report — $(date -u +%Y-%m-%d)"
+          gh issue create --title "$title" --body-file report.md --label feedback-report \
+            || gh issue create --title "$title" --body-file report.md
