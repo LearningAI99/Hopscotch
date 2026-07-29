@@ -249,19 +249,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </section>
 
   <section class="seg">
-    <div class="slbl">Step 1 — One way or round trip? <span class="ib" onclick="tog('tip-trip')" role="button" tabindex="0" aria-label="What does this mean?">i</span></div>
-    <div class="tip" id="tip-trip" style="margin-bottom:8px;">One way: you travel to the departure city once and don't come back this way. Round trip: you'll return the same way after your trip — a rental comes back with you, or you buy tickets both directions.</div>
+    <div class="slbl">Step 1 — Getting to the departure city <span class="ib" onclick="tog('tip-trip')" role="button" tabindex="0" aria-label="What does this mean?">i</span></div>
+    <div class="tip" id="tip-trip" style="margin-bottom:8px;"><strong>This is about the ground leg only — not your flight.</strong> Are you travelling to the departure city once and leaving it at that, or coming back the same way afterwards? Most people flying a return ticket still only need the ground leg one way, because they fly home from the same airport they left from.</div>
     <div class="trip-opts">
       <button class="topt" id="topt-oneway" onclick="setTrip('oneway')">
         <div class="tl">One way</div>
-        <div class="ts" id="ts-oneway">Travel there once. Rental: drop-off fee applies.</div>
+        <div class="ts" id="ts-oneway">Travel there once and leave it at that. Rental: drop-off fee applies.</div>
       </button>
       <button class="topt" id="topt-return" onclick="setTrip('return')">
-        <div class="tl">Round trip</div>
-        <div class="ts" id="ts-return">There and back. Rental: no drop-off fee. Transit: tickets both ways.</div>
+        <div class="tl">There and back</div>
+        <div class="ts" id="ts-return">Return the same way afterwards. Rental: no drop-off fee. Transit: tickets both ways.</div>
       </button>
     </div>
-    <div class="errmsg" id="err-trip">Select one way or round trip.</div>
+    <div class="errmsg" id="err-trip">Select one way or there and back.</div>
   </section>
 
   <section class="seg">
@@ -285,6 +285,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </button>
     </div>
     <div class="errmsg" id="err-mode">Select how you'll get there.</div>
+    <div class="cond" id="manual-panel">
+      <div style="font-size:12px;color:var(--amber);background:var(--amber-soft);border:1px solid var(--amber-line);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:10px;line-height:1.5;">
+        We don't have verified data for this route, so we won't guess at the distance or cost. Enter what it actually costs and how long it takes and we'll do the rest of the maths.
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="manual-cost">Cost of getting there <span class="ib" onclick="tog('tip-manual-cost')" role="button" tabindex="0" aria-label="What to enter">i</span></label>
+          <div class="fare-wrap">
+            <input type="number" id="manual-cost" placeholder="e.g. 120" min="0" />
+            <select class="cur-sel" id="cur-manual" onchange="onCurrencyChange()" aria-label="Currency for travel cost">
+              <option value="USD">USD</option><option value="CAD">CAD</option>
+            </select>
+          </div>
+          <div class="tip" id="tip-manual-cost" style="margin-top:6px;">The <strong>total</strong> for your whole party, including any drop-off or cross-border fees. For a rental that's the full quote; for bus or train it's all the tickets added up. If you picked "there and back", include both directions.</div>
+        </div>
+        <div class="field">
+          <label for="manual-hrs">Travel time each way (hours)</label>
+          <input type="number" id="manual-hrs" placeholder="e.g. 3.5" min="0" step="0.25" />
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px;">Include time at the border if you're crossing one.</div>
+        </div>
+      </div>
+      <div class="errmsg" id="err-manual">Enter both the cost and the travel time.</div>
+    </div>
   </section>
 
   <section class="seg">
@@ -389,6 +412,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div class="bk" id="bk"></div>
     <div class="bk-note" id="bk-note"></div>
     <div id="warns" style="margin-bottom:1rem;"></div>
+    <div id="warns-other-wrap" style="display:none;margin-bottom:1rem;">
+      <div class="more-toggle" onclick="toggleOtherNotes()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')toggleOtherNotes()" style="border-top:1px solid var(--border-3);padding:10px 0;">
+        <span class="more-toggle-label" id="other-notes-label">Other notes</span>
+        <span class="more-arrow" id="other-arrow">▼</span>
+      </div>
+      <div id="warns-other" style="display:none;"></div>
+    </div>
 
     <div class="feedback-card" id="feedback-card">
       <div class="fb-head">Quick question</div>
@@ -644,11 +674,12 @@ function setTrip(t){
    for cities instead. */
 function refreshModes(){
   const noCorridor=!corridor;
-  const unknown=corridor&&!corridor.found;
+  const manual=corridor&&corridor.manual;
   ['bus','train'].forEach(function(m){
     const btn=document.getElementById('mopt-'+m);
-    const available=corridor&&corridor[m];
-    const off=noCorridor?false:!available;
+    // Neutral before cities; freely selectable on unknown routes (the user
+    // supplies the cost themselves); greyed only when we know it doesn't run.
+    const off=(noCorridor||manual)?false:!corridor[m];
     btn.classList.toggle('off',off);
     btn.disabled=off;
   });
@@ -657,19 +688,20 @@ function refreshModes(){
   walkBtn.classList.toggle('hidden',!walkAvailable);
   walkBtn.disabled=!walkAvailable;
   document.getElementById('mode-opts').classList.toggle('has-walk',!!walkAvailable);
+  document.getElementById('manual-panel').classList.toggle('on',!!manual);
 
-  document.getElementById('ms-bus').textContent=noCorridor
+  document.getElementById('ms-bus').textContent=(noCorridor||manual)
     ?'Per person — usually cheapest for solo travellers.'
     :(corridor.bus?('Per person · '+corridor.bus.range+' · ~'+corridor.bus.hrs+' hrs')
-      :(unknown?'Availability unknown for this route.':'No verified bus service on this corridor.'));
-  document.getElementById('ms-train').textContent=noCorridor
+      :'No verified bus service on this corridor.');
+  document.getElementById('ms-train').textContent=(noCorridor||manual)
     ?'Per person — comfortable, border processed on board.'
     :(corridor.train?('Per person · '+corridor.train.range+' · ~'+corridor.train.hrs+' hrs')
-      :(unknown?'Availability unknown for this route.':'No verified train service on this corridor.'));
+      :'No verified train service on this corridor.');
   if(walkAvailable){
     document.getElementById('ms-walk').textContent='Per person · '+corridor.walk.range+' · ~'+Math.round(corridor.walk.hrs*60)+' min incl. border';
   }
-  if(mode&&mode!=='rental'&&corridor&&!corridor[mode]){mode=null;updateModeUI();}
+  if(mode&&mode!=='rental'&&corridor&&!corridor.manual&&!corridor[mode]){mode=null;updateModeUI();}
 }
 
 function setMode(m){
@@ -770,11 +802,10 @@ function onCityInput(){
     const modesTxt=['rental car'].concat(corridor.bus?['bus']:[]).concat(corridor.train?['train']:[]).concat(corridor.walk?['walk']:[]).join(' · ');
     document.getElementById('cn-body').textContent=corridor.km+' km · ~'+dd+' drive each way · border crossing detected · options: '+modesTxt;
   } else {
-    corridor={km:300,drive_hrs:3,border_hrs:0,border:false,found:false,
-      rental:{ow:70,dropfee:90,rt:100,xfee:0},seasonal:{},notes:[],cityA:rawA,cityB:rawB};
+    corridor={found:false,manual:true,border:null,seasonal:{},notes:[],cityA:rawA,cityB:rawB};
     note.className='corridor-note on estimated';
-    document.getElementById('cn-head').textContent=rawA+' → '+rawB+' · not in our database yet';
-    document.getElementById('cn-body').textContent='Using estimated rental figures. Bus/train availability unknown — check locally. Get a real quote before deciding.';
+    document.getElementById('cn-head').textContent=rawA+' → '+rawB+' · not in our database';
+    document.getElementById('cn-body').textContent='We don\'t have verified figures for this route, so we won\'t invent them. Enter your own cost and travel time below and we\'ll calculate the rest.';
   }
   setDefaultCurrencies(rawA,rawB);
   refreshModes();
@@ -879,6 +910,13 @@ function resetAll(){
   document.getElementById('timeval').value='';
   fxSignature='';
   onCurrencyChange();
+  // Manual route entry
+  document.getElementById('manual-cost').value='';
+  document.getElementById('manual-hrs').value='';
+  setSelectVal('cur-manual','USD');
+  document.getElementById('manual-panel').classList.remove('on');
+  document.getElementById('err-manual').className='errmsg';
+  document.getElementById('warns-other-wrap').style.display='none';
   // Errors
   ['err-cities','err-trip','err-mode','err-fares'].forEach(function(id){document.getElementById(id).className='errmsg';});
   // Results + feedback
@@ -890,6 +928,14 @@ function resetAll(){
     window.history.replaceState({},'',window.location.origin+window.location.pathname);
   }
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleOtherNotes(){
+  const c=document.getElementById('warns-other');
+  const a=document.getElementById('other-arrow');
+  const open=c.style.display==='none';
+  c.style.display=open?'':'none';
+  a.classList.toggle('open',open);
 }
 
 function selectFeedback(el,val){
@@ -921,6 +967,13 @@ function calculate(){
   else{errC.className='errmsg';onCityInput();}
   if(!tripType){document.getElementById('err-trip').className='errmsg on';valid=false;}
   if(!mode){const em=document.getElementById('err-mode');em.textContent='Select how you\'ll get there.';em.className='errmsg on';valid=false;}
+  const errM=document.getElementById('err-manual');
+  if(corridor&&corridor.manual){
+    const mc=parseFloat(document.getElementById('manual-cost').value);
+    const mh=parseFloat(document.getElementById('manual-hrs').value);
+    if(!mc||isNaN(mh)){errM.className='errmsg on';valid=false;}
+    else{errM.className='errmsg';}
+  } else if(errM){errM.className='errmsg';}
   const fareHomeRaw=parseFloat(document.getElementById('fare-home').value);
   const fareAwayRaw=parseFloat(document.getElementById('fare-away').value);
   const errF=document.getElementById('err-fares');
@@ -941,7 +994,16 @@ function calculate(){
 
   let travelCost=0, travelHrs=0, travelLegLabel='', modeLabel='', costRows=[], quoteBtnLabel='Get real rental quote';
   const legs=tripType==='return'?2:1;
-  if(mode==='rental'){
+  if(corridor.manual){
+    const mc=parseFloat(document.getElementById('manual-cost').value)||0;
+    const mh=parseFloat(document.getElementById('manual-hrs').value)||0;
+    travelCost=toBase(mc,document.getElementById('cur-manual').value);
+    travelHrs=mh*legs;
+    modeLabel=(mode==='rental'?'rental':mode)+(tripType==='return'?' there and back':' one way');
+    travelLegLabel=tripType==='oneway'?'one way':'both ways';
+    costRows.push({l:'Cost of getting there (your figure)',v:-travelCost});
+    quoteBtnLabel=mode==='rental'?'Get real rental quote':(mode==='bus'?'Check bus schedules':(mode==='train'?'Check train schedules':null));
+  } else if(mode==='rental'){
     const r=corridor.rental;
     modeLabel=tripType==='oneway'?'one-way rental':'return rental';
     const rentalBase2=toBase(tripType==='oneway'?r.ow:r.rt,'USD');
@@ -1032,7 +1094,12 @@ function calculate(){
     }
     warns.push({type:'amber',t:'Passport required',b:'Valid passport needed. Enhanced Driver\'s Licences are accepted at some US/Canada land crossings.'});
   }
-  if(corridor.seasonal){Object.values(corridor.seasonal).forEach(function(n){warns.push({type:'amber',t:'Seasonal note',b:n});});}
+  if(corridor.seasonal){
+    const seasonalNotes=Object.values(corridor.seasonal);
+    if(seasonalNotes.length){
+      warns.push({type:'amber',t:'Seasonal notes',b:seasonalNotes.join('<br><br>')});
+    }
+  }
   const airNote=getAirportNote(rawA,rawB);
   if(airNote) warns.push({type:'amber',t:'Route intelligence',b:airNote});
   if(curH!==curA) warns.push({type:'amber',t:'Mixed currencies',b:'You are comparing fares in different currencies ('+curH+' vs '+curA+'). The conversion rate used is an estimate — check the real rate on the day you book.'});
@@ -1040,11 +1107,24 @@ function calculate(){
   if(modeData&&modeData.estimated) warns.push({type:'amber',t:'Less verified',b:'Service on this corridor is less frequent and our fare figure is a rough estimate — check the operator\'s schedule and price before relying on it.'});
   if(fareSaving>0&&fareSaving<toBase(80,'USD')) warns.push({type:'amber',t:'Thin margin',b:'Small fare difference. A price change, longer border wait, or FX shift could turn this into a loss.'});
   if(hasFlight&&posFare>0) warns.push({type:'amber',t:'Flight timing risk',b:'A delay on your flight to '+rawA+' could cascade into missing your main departure from '+rawB+'. Build in at least 3 hours of buffer.'});
-  if(!corridor.found) warns.push({type:'amber',t:'Estimated figures only',b:'We don\'t have verified data for this city pair. Treat all numbers as a rough guide and get a real quote.'});
+  if(corridor.manual) warns.push({type:'amber',t:'Your own figures',b:'This route isn\'t in our database — the cost and travel time above are the ones you entered, so the result is only as good as those numbers.'});
 
-  document.getElementById('warns').innerHTML=warns.map(function(w){
+  const renderWarn=function(w){
     return '<div class="warn '+w.type+'"><div class="wt">'+w.t+'</div><div class="wb">'+w.b+'</div></div>';
-  }).join('');
+  };
+  const reds=warns.filter(function(w){return w.type==='red';});
+  const ambers=warns.filter(function(w){return w.type!=='red';});
+  document.getElementById('warns').innerHTML=reds.map(renderWarn).join('');
+  const otherWrap=document.getElementById('warns-other-wrap');
+  if(ambers.length){
+    otherWrap.style.display='';
+    document.getElementById('other-notes-label').textContent='Other notes ('+ambers.length+')';
+    document.getElementById('warns-other').innerHTML=ambers.map(renderWarn).join('');
+    document.getElementById('warns-other').style.display='none';
+    document.getElementById('other-arrow').classList.remove('open');
+  } else {
+    otherWrap.style.display='none';
+  }
   document.getElementById('foot').innerHTML='All amounts converted to '+base+' for comparison. FX rates are estimates — adjust in More Options if needed. Rental, bus and train figures based on typical published rates. Last data review: July 2026.';
   document.getElementById('results').className='results on';
 
