@@ -15,6 +15,8 @@ Open `index.html` in a browser. That's it — no build step, no dependencies, no
 All amounts below are in **USD** unless marked otherwise. The calculator works in USD and CAD and shows results in both.
 
 - **Net cost calculation** — fare saving minus the cost of getting there, cross-border fees, positioning flight, and optionally your time: you set what an hour of your time is worth (say $25/hr), and the travel hours are costed at that rate. Leave it blank and time is ignored entirely
+- **Your own car, not just rentals** — the way most people actually do this hop. Costs fuel and running at US$0.22/km round trip, plus airport parking for every day you're away, and skips the rental-company cross-border restrictions (though not the insurance question)
+- **Trip length drives the maths** — a car left at the airport for ten days is usually the biggest cost of the whole trip, and for a return rental the tool prices both keeping one car for the duration *and* taking two separate one-ways, then uses whichever is cheaper and tells you why
 - **Transport modes matched to the corridor** — rental car (priced per vehicle) plus bus and train (priced per person) wherever scheduled service is verified to exist. Seattle–Vancouver offers bus (US$21–45) and Amtrak Cascades (US$50–100); Detroit–Windsor has the Linq Tunnel Bus (~US$17.50); Minneapolis–Winnipeg is honestly flagged as rental-only since Greyhound Canada's shutdown. One special case: at the Niagara Falls twin cities, a **walk** option appears — you can cross the Rainbow Bridge on foot for about a dollar
 - **Travellers count** — transit tickets are per person, rentals per vehicle, so the same trip can flip verdicts between a solo traveller and a family of four
 - **9 verified border corridors** — Seattle–Vancouver, Bellingham–Vancouver, Blaine–Vancouver, Buffalo–Toronto, Detroit–Windsor, Minneapolis–Winnipeg, Niagara Falls (twin cities), Sault Ste. Marie (twin cities), Huntingdon–Sumas. Unknown city pairs still work with clearly flagged estimates
@@ -30,7 +32,12 @@ No black box — the maths is simple and deliberately visible in the full breakd
 
 ```
 net = (fare saving × travellers)
-      − cost of getting there (rental incl. fees, or tickets × travellers)
+      − cost of getting there
+          own car:  fuel & running (round trip) + parking × days
+          rental:   one-way → 1 day + drop-off fee + cross-border fee
+                    return  → cheaper of (daily × days+1 + parking × days)
+                              and (two one-way rentals)
+          transit:  ticket × travellers × legs
       − positioning flight (if any)
       − travel hours × your time value (if set)
 ```
@@ -39,7 +46,7 @@ Everything is converted to your base currency (the currency of your starting-cit
 
 ## Data honesty
 
-Rental, bus and train figures are typical rates per corridor, last reviewed **July 2026** — the calculator says so on every result and pushes users toward a real quote before deciding. Corridors we researched but **deliberately excluded** for lack of rental infrastructure: Pembina–Emerson, Coutts–Sweet Grass, St. Stephen–Calais, Stanstead–Derby Line, Fort Erie as a standalone, and Point Roberts (which needs its own special-case logic).
+Rental, bus, train and airport parking figures are typical rates per corridor, last reviewed **July 2026** (parking is the on-site economy rate and is editable in the form) — the calculator says so on every result and pushes users toward a real quote before deciding. Corridors we researched but **deliberately excluded** for lack of rental infrastructure: Pembina–Emerson, Coutts–Sweet Grass, St. Stephen–Calais, Stanstead–Derby Line, Fort Erie as a standalone, and Point Roberts (which needs its own special-case logic).
 
 Found a wrong number or a policy that changed? [Open an issue](../../issues). Corridor data lives in the `KNOWN` object in `index.html` — corrections and new verified corridors are welcome as PRs. A new corridor needs: distance, drive time, typical one-way and return rental cost, drop-off fee, cross-border fee, verified transit options if any, and confirmation that rental companies actually operate on both sides.
 

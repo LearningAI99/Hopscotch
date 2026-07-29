@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hopscotch — Should you hop cities for a cheaper fare?</title>
+<meta name="description" content="Calculate whether repositioning to a different departure city for a cheaper flight is actually worth it — by rental car, bus, train, or on foot — including cross-border fees and your time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAFAF8;
+  --bg-2:#F1F0EC;
+  --bg-3:#E8E6E1;
+  --text-1:#1C1B18;
+  --text-2:#57544E;
+  --text-3:#8F8B83;
+  --border-1:#C9C6BF;
+  --border-2:#DDDAD4;
+  --border-3:#EAE8E3;
+  --green-deep:#085041;
+  --green:#0F6E56;
+  --green-mid:#5DCAA5;
+  --green-soft:#E1F5EE;
+  --green-chip:#9FE1CB;
+  --red-deep:#791F1F;
+  --red:#A32D2D;
+  --red-line:#E24B4A;
+  --red-soft:#FCEBEB;
+  --red-chip:#F7C1C1;
+  --amber-deep:#412402;
+  --amber-dark:#633806;
+  --amber:#854F0B;
+  --amber-line:#EF9F27;
+  --amber-soft:#FAEEDA;
+  --amber-chip:#FAC775;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{background:var(--bg);}
+body{font-family:var(--font);color:var(--text-1);line-height:1.5;-webkit-font-smoothing:antialiased;}
+.w{padding:2.5rem 1.25rem 4rem;max-width:640px;margin:0 auto;}
+.logo{font-size:11px;letter-spacing:.14em;color:var(--text-3);text-transform:uppercase;margin-bottom:4px;}
+.title{font-family:'Space Grotesk',var(--font);font-size:30px;font-weight:700;color:var(--text-1);letter-spacing:-0.02em;}
+.sub{font-size:14px;color:var(--text-2);margin-top:4px;margin-bottom:2rem;}
+.seg{background:#fff;border:1px solid var(--border-3);border-radius:var(--radius-lg);padding:1.1rem 1.2rem;margin-bottom:.85rem;}
+.slbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-2);font-weight:700;margin-bottom:10px;}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
+.reset-link{font-size:12px;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline;text-underline-offset:2px;padding:0;}
+.reset-link:hover{color:var(--text-1);}
+.headed{font-family:'Space Grotesk',var(--font);font-size:17px;font-weight:600;color:var(--text-1);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.cities-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;}
+.swap-btn{height:38px;width:38px;border:1px solid var(--border-2);border-radius:var(--radius-md);background:#fff;color:var(--text-2);cursor:pointer;font-size:16px;font-family:var(--font);transition:background .15s;flex-shrink:0;}
+.swap-btn:hover{background:var(--bg-2);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field{display:flex;flex-direction:column;gap:5px;position:relative;}
+.field label{font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:5px;}
+.fare-wrap{display:flex;gap:6px;align-items:center;}
+input[type=number],.city-input{height:38px;padding:0 10px;font-size:15px;border:1px solid var(--border-2);border-radius:var(--radius-md);background:#fff;color:var(--text-1);font-family:var(--font);width:100%;}
+.fare-wrap input{flex:1;font-variant-numeric:tabular-nums;}
+input:focus{outline:none;border-color:var(--text-2);}
+.cur-sel{height:38px;padding:0 6px;font-size:13px;border:1px solid var(--border-2);border-radius:var(--radius-md);background:var(--bg-2);color:var(--text-1);font-family:var(--font);cursor:pointer;min-width:62px;}
+.fare-note{font-size:11px;color:var(--text-3);margin-top:4px;min-height:14px;}
+.fare-note strong{color:var(--text-2);}
+.dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border-2);border-radius:var(--radius-md);box-shadow:0 6px 20px rgba(28,27,24,.1);z-index:100;margin-top:3px;overflow-y:auto;max-height:280px;display:none;}
+.dropdown.open{display:block;}
+.dd-item{padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border-3);display:flex;justify-content:space-between;align-items:center;}
+.dd-item:last-child{border-bottom:none;}
+.dd-item:hover,.dd-item.active{background:var(--bg-2);}
+.dd-name{color:var(--text-1);font-weight:500;}
+.dd-tag{font-size:11px;color:var(--text-3);}
+.dd-tag.corridor{color:var(--green);font-weight:600;}
+.dd-free{padding:9px 12px;font-size:13px;color:var(--text-3);cursor:pointer;font-style:italic;}
+.dd-free:hover{background:var(--bg-2);}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid var(--border-2);font-size:10px;font-style:italic;font-family:Georgia,serif;color:var(--text-3);cursor:pointer;background:var(--bg-2);flex-shrink:0;user-select:none;}
+.ib:hover{background:var(--bg-3);color:var(--text-1);}
+.tip{display:none;margin-top:6px;padding:10px 12px;background:var(--bg-2);border-radius:var(--radius-md);font-size:12px;color:var(--text-2);line-height:1.6;border-left:2px solid var(--border-1);}
+.tip.on{display:block;}
+.tip strong{font-weight:600;color:var(--text-1);}
+.trip-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.topt{border:1px solid var(--border-2);border-radius:var(--radius-md);background:var(--bg);cursor:pointer;padding:12px 14px;text-align:left;font-family:var(--font);transition:border-color .15s,background .15s;}
+.topt .tl{font-size:14px;font-weight:600;color:var(--text-1);}
+.topt .ts{font-size:12px;color:var(--text-3);margin-top:3px;line-height:1.4;}
+.topt.sel{border:2px solid var(--text-1);background:#fff;padding:11px 13px;}
+.mode-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;}
+.mopt{border:1px solid var(--border-2);border-radius:var(--radius-md);background:var(--bg);cursor:pointer;padding:12px 14px;text-align:left;font-family:var(--font);transition:border-color .15s,background .15s;}
+.mopt .ml{font-size:14px;font-weight:600;color:var(--text-1);}
+.mopt .ms{font-size:12px;color:var(--text-3);margin-top:3px;line-height:1.4;}
+.mopt.sel{border:2px solid var(--text-1);background:#fff;padding:11px 13px;}
+.mopt:disabled,.mopt.off{opacity:.45;cursor:not-allowed;background:var(--bg-2);}
+.mopt.hidden{display:none;}
+.tog-row{display:flex;align-items:flex-start;gap:10px;}
+.tog{position:relative;width:38px;height:22px;flex-shrink:0;margin-top:1px;}
+.tog input{opacity:0;width:0;height:0;}
+.tog-s{position:absolute;inset:0;background:var(--bg-3);border-radius:22px;border:1px solid var(--border-2);cursor:pointer;transition:background .2s;}
+.tog-s:before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:var(--text-3);border-radius:50%;transition:transform .2s,background .2s;}
+.tog input:checked+.tog-s{background:var(--green);border-color:var(--green-deep);}
+.tog input:checked+.tog-s:before{transform:translateX(16px);background:#fff;}
+.tog-label{font-size:13px;color:var(--text-2);line-height:1.5;display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding-top:2px;}
+.cond{display:none;margin-top:10px;}
+.cond.on{display:block;}
+.errmsg{font-size:12px;color:var(--red);margin-top:6px;display:none;}
+.errmsg.on{display:block;}
+.corridor-note{display:none;margin-top:10px;padding:10px 14px;border-radius:var(--radius-md);font-size:13px;line-height:1.5;}
+.corridor-note.on{display:block;}
+.corridor-note.known{background:var(--green-soft);border:1px solid var(--green-mid);}
+.corridor-note.known .cn-head{font-weight:600;color:var(--green-deep);margin-bottom:2px;}
+.corridor-note.known .cn-body{color:var(--green);}
+.corridor-note.estimated{background:var(--amber-soft);border:1px solid var(--amber-line);}
+.corridor-note.estimated .cn-head{font-weight:600;color:var(--amber-dark);margin-bottom:2px;}
+.corridor-note.estimated .cn-body{color:var(--amber);}
+.trav-wrap{display:flex;align-items:center;gap:10px;}
+.trav-wrap input{width:90px;}
+.trav-hint{font-size:12px;color:var(--text-3);}
+.more-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;padding:2px 0;}
+.more-toggle-label{font-size:13px;color:var(--text-2);}
+.more-arrow{font-size:11px;color:var(--text-3);transition:transform .2s;}
+.more-arrow.open{transform:rotate(180deg);}
+.more-content{display:none;margin-top:10px;}
+.more-content.on{display:block;}
+.fx-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;}
+.fx-pair{display:flex;flex-direction:column;gap:5px;}
+.fx-pair label{font-size:13px;color:var(--text-2);}
+.fx-pair-wrap{display:flex;gap:6px;align-items:center;}
+.fx-pair-wrap input{flex:1;}
+.fx-pair-wrap .fx-label{font-size:12px;color:var(--text-3);white-space:nowrap;}
+.calc-btn{width:100%;height:44px;background:var(--text-1);color:#fff;border:none;border-radius:var(--radius-md);font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;transition:opacity .15s;margin-top:.5rem;}
+.calc-btn:hover{opacity:.85;}
+.divider{height:1px;background:var(--border-3);margin:1.75rem 0;}
+.results{display:none;}
+.results.on{display:block;}
+.vwrap{border-radius:var(--radius-lg);border:1px solid var(--border-3);padding:1.5rem;margin-bottom:1rem;}
+.vwrap.go{border-color:var(--green);background:var(--green-soft);}
+.vwrap.no{border-color:var(--red-line);background:var(--red-soft);}
+.vwrap.maybe{border-color:var(--amber-line);background:var(--amber-soft);}
+.vbadge{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding:4px 11px;border-radius:20px;margin-bottom:12px;}
+.go .vbadge{background:var(--green-chip);color:var(--green-deep);}
+.no .vbadge{background:var(--red-chip);color:var(--red-deep);}
+.maybe .vbadge{background:var(--amber-chip);color:var(--amber-deep);}
+.vamt{font-size:38px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;}
+.go .vamt{color:var(--green-deep);}
+.no .vamt{color:var(--red);}
+.maybe .vamt{color:var(--amber-dark);}
+.vsub{font-size:13px;margin-top:7px;}
+.go .vsub{color:var(--green);}
+.no .vsub{color:var(--red);}
+.maybe .vsub{color:var(--amber);}
+.narr{background:var(--bg-2);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:1rem;font-size:13px;color:var(--text-2);line-height:1.7;}
+.narr strong{font-weight:600;color:var(--text-1);}
+.result-actions{display:flex;gap:8px;margin-bottom:.5rem;flex-wrap:wrap;}
+.action-btn{height:38px;padding:0 14px;border-radius:var(--radius-md);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;transition:background .15s,opacity .15s;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border-2);background:#fff;color:var(--text-2);}
+.action-btn:hover{background:var(--bg-2);}
+.action-btn.primary{background:var(--text-1);color:#fff;border-color:var(--text-1);}
+.action-btn.primary:hover{opacity:.85;background:var(--text-1);}
+.share-confirm{font-size:12px;color:var(--green);margin-bottom:1rem;display:none;}
+.share-confirm.on{display:block;}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;}
+.mc{background:var(--bg-2);border-radius:var(--radius-md);padding:10px 12px;}
+.mcl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.mcv{font-size:17px;font-weight:600;color:var(--text-1);font-variant-numeric:tabular-nums;}
+.mcs{font-size:10px;color:var(--text-3);margin-top:1px;}
+.slbl2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);font-weight:600;margin-bottom:6px;margin-top:1rem;}
+.bk{border:1px solid var(--border-3);border-radius:var(--radius-md);overflow:hidden;margin-bottom:.5rem;background:#fff;}
+.bkr{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border-3);font-size:13px;}
+.bkr:last-child{border-bottom:none;}
+.bkr.tot{background:var(--bg-2);font-weight:600;}
+.bkl{color:var(--text-2);}
+.bkv{font-variant-numeric:tabular-nums;color:var(--text-1);}
+.bkv.pos{color:var(--green);}
+.bkv.neg{color:var(--red);}
+.bk-note{font-size:11px;color:var(--text-3);margin-bottom:1rem;padding:0 2px;}
+.warn{border-radius:var(--radius-md);padding:10px 13px;margin-bottom:8px;}
+.warn.amber{background:var(--amber-soft);border:1px solid var(--amber-line);}
+.warn.red{background:var(--red-soft);border:1px solid var(--red-line);}
+.wt{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.warn.amber .wt{color:var(--amber-dark);}
+.warn.red .wt{color:var(--red);}
+.wb{font-size:13px;line-height:1.5;}
+.warn.amber .wb{color:var(--amber);}
+.warn.red .wb{color:var(--red-deep);}
+.feedback-card{display:none;margin-top:1.5rem;padding:1.25rem;border:1px solid var(--border-2);border-radius:var(--radius-lg);background:#fff;}
+.feedback-card.on{display:block;animation:fadeSlide .4s ease;}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){.feedback-card.on{animation:none;}}
+.fb-head{font-size:14px;font-weight:600;color:var(--text-1);margin-bottom:4px;}
+.fb-sub{font-size:12px;color:var(--text-3);margin-bottom:12px;}
+.fb-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.fb-opt{padding:10px 12px;border:1px solid var(--border-2);border-radius:var(--radius-md);font-size:13px;color:var(--text-2);cursor:pointer;transition:background .15s,border-color .15s;background:#fff;}
+.fb-opt:hover{background:var(--bg-2);}
+.fb-opt.sel{border-color:var(--text-1);color:var(--text-1);background:var(--bg-2);}
+.fb-text{width:100%;min-height:64px;padding:8px 10px;font-size:13px;border:1px solid var(--border-2);border-radius:var(--radius-md);background:#fff;color:var(--text-1);font-family:var(--font);resize:none;display:none;margin-bottom:10px;}
+.fb-text.on{display:block;}
+.fb-text:focus{outline:none;border-color:var(--text-2);}
+.fb-submit{height:38px;padding:0 16px;background:var(--text-1);color:#fff;border:none;border-radius:var(--radius-md);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;display:none;}
+.fb-submit.on{display:inline-block;}
+.fb-submit:hover{opacity:.85;}
+.fb-thanks{font-size:13px;color:var(--green);display:none;padding:4px 0;}
+.fb-thanks.on{display:block;}
+.foot{font-size:11px;color:var(--text-3);line-height:1.6;border-top:1px solid var(--border-3);padding-top:12px;margin-top:1rem;}
+.site-foot{max-width:640px;margin:0 auto;padding:0 1.25rem 3rem;font-size:11px;color:var(--text-3);line-height:1.7;}
+.site-foot a{color:var(--text-2);}
+@media(max-width:520px){
+  .row2,.trip-opts,.fx-row{grid-template-columns:1fr;}
+  .mode-opts{grid-template-columns:1fr 1fr;}
+  .cities-row{grid-template-columns:1fr;}
+  .swap-btn{width:100%;}
+  .metrics{grid-template-columns:1fr 1fr;}
+  .vamt{font-size:32px;}
+}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--text-1);outline-offset:2px;}
+</style>
+</head>
+<body>
+<main class="w">
+  <div class="logo">Hopscotch</div>
+  <div class="title-row">
+    <h1 class="title">Hopscotch</h1>
+    <button class="reset-link" onclick="resetAll()">Start over</button>
+  </div>
+  <p class="sub">Should you hop cities for a cheaper fare?</p>
+
+  <section class="seg">
+    <div class="headed">Where are you headed? <span class="ib" onclick="tog('tip-cities')" role="button" tabindex="0" aria-label="What are these cities for?">i</span></div>
+    <div class="tip" id="tip-cities" style="margin-bottom:8px;">We use both cities to work out distance, travel time, whether a border is crossed, which ways of getting there actually exist, and the default currency for each fare.</div>
+    <div class="cities-row">
+      <div class="field">
+        <label id="lbl-pickup" for="city-a">Starting city</label>
+        <input class="city-input" id="city-a" placeholder="e.g. Seattle" autocomplete="off"
+          oninput="showDropdown('a')" onfocus="showDropdown('a')" onkeydown="ddKey(event,'a')" />
+        <div class="dropdown" id="dd-a"></div>
+      </div>
+      <button class="swap-btn" onclick="swapCities()" title="Swap cities" aria-label="Swap starting and departure cities">⇄</button>
+      <div class="field">
+        <label id="lbl-dropoff" for="city-b">Departure city (cheaper fare)</label>
+        <input class="city-input" id="city-b" placeholder="e.g. Vancouver" autocomplete="off"
+          oninput="showDropdown('b')" onfocus="showDropdown('b')" onkeydown="ddKey(event,'b')" />
+        <div class="dropdown" id="dd-b"></div>
+      </div>
+    </div>
+    <div class="errmsg" id="err-cities"></div>
+    <div class="corridor-note" id="corridor-note">
+      <div class="cn-head" id="cn-head"></div>
+      <div class="cn-body" id="cn-body"></div>
+    </div>
+  </section>
+
+  <section class="seg">
+    <div class="slbl">Step 1 — Getting to the departure city <span class="ib" onclick="tog('tip-trip')" role="button" tabindex="0" aria-label="What does this mean?">i</span></div>
+    <div class="tip" id="tip-trip" style="margin-bottom:8px;"><strong>This is about the ground leg only — not your flight.</strong> If you fly out of the departure city and back into it, you need the ground leg <em>twice</em> — so "there and back" is the usual answer. Pick "one way" only if you're flying one way, or your return flight lands back at your starting city instead.</div>
+    <div class="trip-opts">
+      <button class="topt" id="topt-oneway" onclick="setTrip('oneway')">
+        <div class="tl">One way</div>
+        <div class="ts" id="ts-oneway">Travel there once and leave it at that. Rental: drop-off fee applies.</div>
+      </button>
+      <button class="topt" id="topt-return" onclick="setTrip('return')">
+        <div class="tl">There and back</div>
+        <div class="ts" id="ts-return">Return the same way afterwards. Rental: no drop-off fee. Transit: tickets both ways.</div>
+      </button>
+    </div>
+    <div class="errmsg" id="err-trip">Select one way or there and back.</div>
+  </section>
+
+  <section class="seg">
+    <div class="slbl">Step 2 — How will you get there?</div>
+    <div class="mode-opts" id="mode-opts">
+      <button class="mopt" id="mopt-rental" onclick="setMode('rental')">
+        <div class="ml">🚗 Rental car</div>
+        <div class="ms" id="ms-rental">Per vehicle — best for groups or continuing to drive.</div>
+      </button>
+      <button class="mopt" id="mopt-owncar" onclick="setMode('owncar')">
+        <div class="ml">🔑 My own car</div>
+        <div class="ms" id="ms-owncar">Fuel and running costs, plus airport parking while you're away.</div>
+      </button>
+      <button class="mopt" id="mopt-bus" onclick="setMode('bus')">
+        <div class="ml">🚌 Bus</div>
+        <div class="ms" id="ms-bus">Per person — usually cheapest for solo travellers.</div>
+      </button>
+      <button class="mopt" id="mopt-train" onclick="setMode('train')">
+        <div class="ml">🚆 Train</div>
+        <div class="ms" id="ms-train">Per person — comfortable, border processed on board.</div>
+      </button>
+      <button class="mopt hidden" id="mopt-walk" onclick="setMode('walk')">
+        <div class="ml">🚶 Walk</div>
+        <div class="ms" id="ms-walk">Per person — this crossing has a pedestrian walkway.</div>
+      </button>
+    </div>
+    <div class="errmsg" id="err-mode">Select how you'll get there.</div>
+    <div class="cond" id="manual-panel">
+      <div style="font-size:12px;color:var(--amber);background:var(--amber-soft);border:1px solid var(--amber-line);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:10px;line-height:1.5;">
+        We don't have verified data for this route, so we won't guess at the distance or cost. Enter what it actually costs and how long it takes and we'll do the rest of the maths.
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="manual-cost">Cost of getting there <span class="ib" onclick="tog('tip-manual-cost')" role="button" tabindex="0" aria-label="What to enter">i</span></label>
+          <div class="fare-wrap">
+            <input type="number" id="manual-cost" placeholder="e.g. 120" min="0" />
+            <select class="cur-sel" id="cur-manual" onchange="onCurrencyChange()" aria-label="Currency for travel cost">
+              <option value="USD">USD</option><option value="CAD">CAD</option>
+            </select>
+          </div>
+          <div class="tip" id="tip-manual-cost" style="margin-top:6px;">The <strong>total</strong> for your whole party, including any drop-off or cross-border fees. For a rental that's the full quote; for bus or train it's all the tickets added up. If you picked "there and back", include both directions.</div>
+        </div>
+        <div class="field">
+          <label for="manual-hrs">Travel time each way (hours)</label>
+          <input type="number" id="manual-hrs" placeholder="e.g. 3.5" min="0" step="0.25" />
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px;">Include time at the border if you're crossing one.</div>
+        </div>
+      </div>
+      <div class="errmsg" id="err-manual">Enter both the cost and the travel time.</div>
+    </div>
+  </section>
+
+  <section class="seg">
+    <div class="slbl">Step 3 — Your trip <span class="ib" onclick="tog('tip-trav')" role="button" tabindex="0" aria-label="Why does this matter?">i</span></div>
+    <div class="tip" id="tip-trav" style="margin-bottom:8px;"><strong>Why these matter:</strong> bus and train tickets are per person, but a car is per vehicle — one person on a bus often beats driving, four people rarely does. And if you're leaving a car at the airport, the number of days you're away is usually the biggest cost of the whole trip.</div>
+    <div class="row2">
+      <div class="field">
+        <label for="travellers">How many travelling?</label>
+        <div class="trav-wrap">
+          <input type="number" id="travellers" value="1" min="1" max="9" oninput="updateModeHints();updateFareNote()" aria-label="Number of travellers" />
+          <span class="trav-hint" id="trav-hint">travelling alone</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="trip-days">How many days away?</label>
+        <input type="number" id="trip-days" value="7" min="1" max="365" oninput="updateParkingLabel()" aria-label="Trip length in days" />
+      </div>
+    </div>
+    <div class="cond" id="parking-field">
+      <div class="field" style="margin-top:10px;">
+        <label for="parking-rate" id="parking-label">Airport parking (USD/day) <span class="ib" onclick="tog('tip-parking')" role="button" tabindex="0" aria-label="About parking">i</span></label>
+        <input type="number" id="parking-rate" min="0" step="1" oninput="this.dataset.touched='1'" />
+        <div class="tip" id="tip-parking" style="margin-top:6px;">Pre-filled with a typical <strong>on-site economy</strong> daily rate for that airport — edit it if you have a real quote. Off-airport lots with shuttles are often half this. This is charged for every day you're away, so it's usually the single biggest line in the calculation for a long trip.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="seg">
+    <div class="slbl">Step 4 — The flight fares you found <span class="ib" onclick="tog('tip-fares')" role="button" tabindex="0" aria-label="How to enter fares">i</span></div>
+    <div class="tip" id="tip-fares" style="margin-bottom:8px;">Enter each fare exactly as you see it — in the currency shown on the booking site, <strong>per person</strong>. Same destination, same dates, same cabin.</div>
+    <div class="row2">
+      <div class="field">
+        <label id="lbl-fare-home" for="fare-home">Fare from starting city</label>
+        <div class="fare-wrap">
+          <input type="number" id="fare-home" placeholder="e.g. 680" min="0" oninput="updateFareNote()" />
+          <select class="cur-sel" id="cur-home" onchange="onCurrencyChange()" aria-label="Currency for starting city fare">
+            <option value="USD">USD</option><option value="CAD">CAD</option>
+          </select>
+        </div>
+        <div class="fare-note" id="note-home"></div>
+      </div>
+      <div class="field">
+        <label id="lbl-fare-away" for="fare-away">Fare from departure city</label>
+        <div class="fare-wrap">
+          <input type="number" id="fare-away" placeholder="e.g. 430" min="0" oninput="updateFareNote()" />
+          <select class="cur-sel" id="cur-away" onchange="onCurrencyChange()" aria-label="Currency for departure city fare">
+            <option value="USD">USD</option><option value="CAD">CAD</option>
+          </select>
+        </div>
+        <div class="fare-note" id="note-away"></div>
+      </div>
+    </div>
+    <div class="errmsg" id="err-fares"></div>
+    <div id="fare-comparison" style="display:none;margin-top:8px;padding:8px 12px;background:var(--bg-2);border-radius:var(--radius-md);font-size:13px;color:var(--text-2);"></div>
+  </section>
+
+  <section class="seg">
+    <div class="slbl">Step 5 — Did you fly to reach the starting city?</div>
+    <div class="tog-row">
+      <label class="tog"><input type="checkbox" id="tog-flight" onchange="toggleFlight()" aria-label="I took a flight to reach the starting city" /><span class="tog-s"></span></label>
+      <span class="tog-label">Yes — I took a flight to get there <span class="ib" onclick="tog('tip-posflight')" role="button" tabindex="0" aria-label="What does this mean?">i</span></span>
+    </div>
+    <div class="tip" id="tip-posflight" style="margin-top:8px;">A separate flight just to reach the starting city. Example — you're in Chicago, you fly to Seattle, then travel on to Vancouver to catch your cheaper flight. The Chicago → Seattle flight is that cost. Enter the <strong>total for everyone travelling</strong>.</div>
+    <div class="cond" id="flight-field">
+      <div class="field" style="margin-top:8px;">
+        <label for="pos-fare">Total cost of that flight</label>
+        <div class="fare-wrap">
+          <input type="number" id="pos-fare" placeholder="e.g. 180" min="0" />
+          <select class="cur-sel" id="cur-pos" onchange="onCurrencyChange()" aria-label="Currency for flight cost">
+            <option value="USD">USD</option><option value="CAD">CAD</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="seg">
+    <div class="more-toggle" onclick="toggleMore()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')toggleMore()">
+      <span class="more-toggle-label">More options — time value, exchange rates</span>
+      <span class="more-arrow" id="more-arrow">▼</span>
+    </div>
+    <div class="more-content" id="more-content">
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;margin-top:6px;">All costs converted to <strong id="base-cur-label">USD</strong> for the final calculation.</div>
+      <div class="fx-row" id="fx-row"></div>
+      <div class="field" style="margin-top:4px;">
+        <label for="timeval">Your time value (<span id="time-cur-label">USD</span>/hr) <span class="ib" onclick="tog('tip-time')" role="button" tabindex="0" aria-label="What is time value?">i</span></label>
+        <input type="number" id="timeval" placeholder="Leave blank to ignore" min="0" />
+        <div class="tip" id="tip-time" style="margin-top:6px;"><strong>What is your time worth?</strong> The journey takes hours. If you earn $40/hr, that time has a real cost. Enter a number to include it — leave blank to ignore. Counted once regardless of group size.</div>
+      </div>
+    </div>
+  </section>
+
+  <button class="calc-btn" onclick="calculate()">Calculate</button>
+  <div class="divider"></div>
+
+  <section class="results" id="results" aria-live="polite">
+    <div class="vwrap" id="vwrap">
+      <div class="vbadge" id="vbadge"></div>
+      <div class="vamt" id="vamt"></div>
+      <div class="vsub" id="vsub"></div>
+    </div>
+
+    <div class="result-actions" id="result-actions">
+      <button class="action-btn primary" id="quote-btn" onclick="getQuote()">Get real rental quote</button>
+      <button class="action-btn" onclick="shareResult()">Share this result</button>
+      <button class="action-btn" onclick="resetAll()">New calculation</button>
+    </div>
+    <div class="share-confirm" id="share-confirm">Link copied — share it with anyone.</div>
+
+    <div class="narr" id="narr"></div>
+    <div class="metrics">
+      <div class="mc"><div class="mcl">Fare saving</div><div class="mcv" id="m-saving">—</div><div class="mcs" id="m-saving-s">before costs</div></div>
+      <div class="mc"><div class="mcl">Total costs</div><div class="mcv" id="m-costs">—</div><div class="mcs" id="m-costs-s">to reposition</div></div>
+      <div class="mc"><div class="mcl">Travel time</div><div class="mcv" id="m-drive">—</div><div class="mcs" id="m-drive-s">—</div></div>
+      <div class="mc"><div class="mcl">Net (local)</div><div class="mcv" id="m-sec">—</div><div class="mcs" id="m-sec-s">—</div></div>
+    </div>
+    <div class="slbl2">Full breakdown</div>
+    <div class="bk" id="bk"></div>
+    <div class="bk-note" id="bk-note"></div>
+    <div id="warns" style="margin-bottom:1rem;"></div>
+    <div id="warns-other-wrap" style="display:none;margin-bottom:1rem;">
+      <div class="more-toggle" onclick="toggleOtherNotes()" role="button" tabindex="0" onkeydown="if(event.key==='Enter')toggleOtherNotes()" style="border-top:1px solid var(--border-3);padding:10px 0;">
+        <span class="more-toggle-label" id="other-notes-label">Other notes</span>
+        <span class="more-arrow" id="other-arrow">▼</span>
+      </div>
+      <div id="warns-other" style="display:none;"></div>
+    </div>
+
+    <div class="feedback-card" id="feedback-card">
+      <div class="fb-head">Quick question</div>
+      <div class="fb-sub">Takes 10 seconds. Helps us improve for everyone.</div>
+      <div class="fb-opts">
+        <div class="fb-opt" onclick="selectFeedback(this,'Yes, booking it')" role="button" tabindex="0">✓ &nbsp;Yes — I'm going to book this</div>
+        <div class="fb-opt" onclick="selectFeedback(this,'Maybe, still deciding')" role="button" tabindex="0">~ &nbsp;Maybe — still deciding</div>
+        <div class="fb-opt" onclick="selectFeedback(this,'No, not worth it')" role="button" tabindex="0">✕ &nbsp;No — not worth it</div>
+      </div>
+      <textarea class="fb-text" id="fb-text" placeholder="Anything we got wrong or missed? (optional)"></textarea>
+      <button class="fb-submit" id="fb-submit" onclick="submitFeedback()">Send</button>
+      <div class="fb-thanks" id="fb-thanks">Thanks — this genuinely helps.</div>
+    </div>
+
+    <div class="foot" id="foot"></div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <p><strong>Disclaimer:</strong> This calculator is for general information only. It is not legal or financial advice. Rental prices, bus and train fares, cross-border policies, fees and border wait times vary by company, location and season, and change over time. We do our best to keep information current but cannot guarantee accuracy. Always verify prices and requirements directly with the provider before booking. Use of this tool is at your own risk.</p>
+  <p style="margin-top:8px;">Spotted something outdated? <a href="https://github.com/LearningAI99/Hopscotch/issues" target="_blank" rel="noopener">Let us know</a>.</p>
+  <p style="margin-top:8px;">© 2026 Hopscotch. All rights reserved.</p>
+</footer>
+
+<script>
+/* ============================================================
+   ONE-TIME SETUP — three placeholders to swap:
+
+   1. GOOGLE_FORM_URL — your Google Form base URL.
+      It looks like: https://docs.google.com/forms/d/e/LONG_ID/
+      (everything up to but NOT including "viewform")
+
+   2. FB_FIELD_CHOICE and FB_FIELD_TEXT — your form's field IDs.
+      In your form: ⋮ menu → "Get pre-filled link" → fill dummy
+      answers → Get link → copy the entry.XXXXXXX numbers.
+
+   3. AFFILIATE_ID — your Rentalcars.com affiliate code from
+      CJ.com or Awin. Until then the quote link still works,
+      it just doesn't earn commission.
+   ============================================================ */
+const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSezECeRzRK9MrO9pUPfKMCm9BbeZRc-KoVOq8B36SPTgwvu7w';
+const FB_FIELD_CHOICE = 'entry.308744410';
+const FB_FIELD_TEXT   = 'entry.1610282201';
+const AFFILIATE_ID    = 'YOUR_AFFILIATE_ID';
+/* ============================================================ */
+
+let tripType=null;   // 'oneway' | 'return'
+let mode=null;       // 'rental' | 'bus' | 'train' | 'walk'
+let corridor=null;
+let ddActiveIdx={a:-1,b:-1};
+let fbChoice=null;
+let fxSignature='';  // tracks which FX inputs exist so we only rebuild when needed
+
+/* Rates are relative to USD. EUR and GBP stay defined so the Schengen
+   corridors only need their <option> tags added back to the three
+   currency selectors — the conversion layer already handles them. */
+const CURRENCIES={USD:{sym:'$',toUSD:1},CAD:{sym:'C$',toUSD:0.735},EUR:{sym:'€',toUSD:1.09},GBP:{sym:'£',toUSD:1.27}};
+
+/* Own-car running cost: fuel plus tyres/servicing, NOT full depreciation
+   or insurance (most people don't feel those per-trip). USD per km. */
+const OWN_CAR_PER_KM=0.22;
+/* Typical on-site economy airport parking, USD per day, mid-2026.
+   Off-airport lots with shuttles often run about half. Users can override. */
+const DEFAULT_PARKING=15;
+
+const CITIES=[
+  {name:'Seattle',    aliases:['sea','seattle wa','seattle washington'],country:'US',cur:'USD',park:25},
+  {name:'Vancouver',  aliases:['yvr','vancouver bc','vancouver canada'],country:'CA',cur:'CAD',park:16},
+  {name:'Bellingham', aliases:['bli','bellingham wa','bellingham washington'],country:'US',cur:'USD',park:10},
+  {name:'Blaine',     aliases:['blaine wa','blaine washington'],country:'US',cur:'USD',park:10},
+  {name:'Buffalo',    aliases:['buf','buffalo ny','buffalo new york'],country:'US',cur:'USD',park:12},
+  {name:'Toronto',    aliases:['yyz','ytz','toronto on','toronto ontario'],country:'CA',cur:'CAD',park:18},
+  {name:'Detroit',    aliases:['dtw','detroit mi','detroit michigan'],country:'US',cur:'USD',park:14},
+  {name:'Windsor',    aliases:['yqg','windsor on','windsor ontario'],country:'CA',cur:'CAD',park:9},
+  {name:'Minneapolis',aliases:['msp','minneapolis mn','minneapolis minnesota'],country:'US',cur:'USD',park:18},
+  {name:'Winnipeg',   aliases:['ywg','winnipeg mb','winnipeg manitoba'],country:'CA',cur:'CAD',park:11},
+  {name:'Niagara Falls',aliases:['niagara','iag','ycf','niagara falls ny','niagara falls on','niagara falls ontario','niagara falls new york'],country:'US/CA',cur:'USD',park:10},
+  {name:'Sault Ste. Marie',aliases:['sault ste marie','soo','the soo','ciu','yam','sault ste marie mi','sault ste marie on'],country:'US/CA',cur:'USD',park:8},
+  {name:'Huntingdon', aliases:['huntingdon bc','huntingdon british columbia'],country:'CA',cur:'CAD',park:12},
+  {name:'Sumas',      aliases:['sumas wa','sumas washington'],country:'US',cur:'USD',park:10},
+];
+
+/* Corridor database. All prices in USD, verified July 2026.
+   rental: per vehicle. bus/train/walk: PER PERSON, one-way.
+   modes absent = not available on this corridor (verified). */
+const KNOWN={
+  'seattle|vancouver':{km:230,drive_hrs:2.5,border_hrs:.5,border:true,
+    rental:{daily:65,dropfee:80,xfee:20},
+    bus:{price:35,hrs:4.25,range:'$21–45',ops:'FlixBus, Quick Shuttle, Greyhound, Amtrak Thruway'},
+    train:{price:70,hrs:4.4,range:'$50–100',ops:'Amtrak Cascades — border processed on board'},
+    seasonal:{summer:'Summer weekends: border waits at Pacific Highway can reach 2–3 hours by car. Leave very early or use NEXUS. Bus and train are less affected.'},notes:[]},
+  'bellingham|vancouver':{km:90,drive_hrs:1,border_hrs:.5,border:true,
+    rental:{daily:45,dropfee:70,xfee:20},
+    bus:{price:22,hrs:2,range:'$15–35',ops:'FlixBus / Quick Shuttle stops (less frequent — check schedules)',estimated:true},
+    seasonal:{summer:'Summer weekends: Peace Arch crossing can back up significantly by car.'},notes:[]},
+  'blaine|vancouver':{km:5,drive_hrs:.15,border_hrs:.5,border:true,
+    rental:{daily:40,dropfee:60,xfee:20},
+    seasonal:{},notes:[]},
+  'buffalo|toronto':{km:155,drive_hrs:1.5,border_hrs:.75,border:true,
+    rental:{daily:55,dropfee:75,xfee:20},
+    bus:{price:25,hrs:3.2,range:'$15–35',ops:'FlixBus, Megabus, Greyhound — 15+ departures daily'},
+    seasonal:{summer:'Peace Bridge sees heavy summer leisure traffic. Expect 45–90 min waits by car on Friday afternoons and long weekends.',winter:'Bridge can close briefly during severe winter storms. Check 511ny.org before departing.'},notes:[]},
+  'detroit|windsor':{km:5,drive_hrs:.2,border_hrs:.5,border:true,
+    rental:{daily:40,dropfee:60,xfee:15},
+    bus:{price:18,hrs:.75,range:'~$17.50',ops:'Linq Tunnel Bus — the only way to cross the tunnel without a vehicle (pedestrians prohibited)'},
+    seasonal:{summer:'Tunnel backs up on major downtown event days. Ambassador Bridge is typically faster by car.'},
+    notes:['By car: Ambassador Bridge or Detroit–Windsor Tunnel. Confirm your rental company permits tunnel crossings — some restrict this.']},
+  'minneapolis|winnipeg':{km:740,drive_hrs:7,border_hrs:.75,border:true,
+    rental:{daily:75,dropfee:120,xfee:25},
+    seasonal:{winter:'Winter driving on this corridor is serious. I-29/Highway 75 is exposed prairie — blizzard closures happen. Check 511 road conditions before departing.',summer:'Summer is the reliable window. Border wait at Pembina/Emerson is typically under 30 min.'},
+    notes:['No verified direct bus or train service on this corridor since Greyhound Canada shut down. Rental (or your own car) is the only overland option.','This is a long drive — 7+ hours each way. Factor in an overnight stay if flying the next day.']},
+  'niagara falls|twin':{km:3,drive_hrs:.1,border_hrs:.5,border:true,
+    rental:{daily:50,dropfee:100,xfee:20},
+    walk:{price:1.25,hrs:.5,range:'$1.00 USD / $1.25 CAD',ops:'Rainbow Bridge pedestrian walkway — toll collected US-bound only'},
+    seasonal:{summer:'Peak tourist season. Expect 60–90 min border waits by car at Rainbow Bridge on weekends. Walking across is usually far quicker.'},
+    notes:['One-way rental drop fee is typically $100 USD for this crossing — walking or a return rental is far cheaper.','Car bridge toll: approx $4–6 USD per crossing (not included in rental figures).','No rental desks at the border itself. Nearest US pickup is Niagara Falls Airport (IAG), ~9 km away.']},
+  'sault ste. marie|twin':{km:1,drive_hrs:.1,border_hrs:.5,border:true,
+    rental:{daily:45,dropfee:85,xfee:20},
+    seasonal:{winter:'Heavy snowfall corridor — 128 inches average. Check rental company winter tyre policy. International Bridge occasionally closes in extreme conditions.'},
+    notes:['No regular pedestrian crossing or scheduled transit on the International Bridge — a vehicle is required.','International Bridge toll: $4.40 USD / $6.20 CAD per crossing.','Avis, Budget, Enterprise and Hertz confirmed on both sides.']},
+  'huntingdon|sumas':{km:3,drive_hrs:.15,border_hrs:.5,border:true,
+    rental:{daily:45,dropfee:70,xfee:20},
+    seasonal:{},
+    notes:['Smaller crossing south of Vancouver. Rental infrastructure is limited and no scheduled transit — confirm availability before booking.']},
+};
+
+const AIRPORT_NOTES={
+  'seattle|vancouver':'YVR operates more trans-Pacific routes than SEA — particularly to Asia and Australia. SEA has stronger US domestic connections and more low-cost carrier options. If your onward journey is trans-Pacific, YVR may offer better routing.',
+  'bellingham|vancouver':'YVR has significantly more routes than Bellingham (BLI), which is served mainly by Allegiant with limited destinations. This hop almost always makes sense if the YVR fare exists.',
+  'buffalo|toronto':'YYZ has far more international routes than BUF. If flying to Europe or Asia, Toronto is the stronger hub. For US domestic connections, Buffalo may be simpler.',
+  'detroit|windsor':'DTW is a major Delta hub with extensive connections. Windsor (YQG) is a very small airport. This hop is almost always Detroit → Windsor, not the reverse.',
+  'minneapolis|winnipeg':'MSP is a major Delta hub. Winnipeg (YWG) has some international routes but limited compared to MSP. Check your specific route exists nonstop from YWG before committing.',
+  'niagara falls|twin':'Both Niagara Falls airports (IAG on the US side, YCF on the Canadian side) are small regional airports. Verify your specific route actually operates from whichever side is cheaper.',
+  'huntingdon|sumas':'Neither Huntingdon nor Sumas has a commercial airport. This corridor connects to Vancouver (YVR) and Bellingham (BLI) respectively.',
+};
+
+const ALIASES_MAP={};
+CITIES.forEach(c=>{ALIASES_MAP[c.name.toLowerCase()]=c;c.aliases.forEach(a=>ALIASES_MAP[a]=c);});
+
+const PARTNERS={};
+Object.keys(KNOWN).forEach(function(k){
+  if(k.endsWith('|twin')){
+    const n=k.replace('|twin','');
+    PARTNERS[n]=(PARTNERS[n]||[]).concat([n]);
+  } else {
+    const parts=k.split('|');
+    PARTNERS[parts[0]]=(PARTNERS[parts[0]]||[]).concat([parts[1]]);
+    PARTNERS[parts[1]]=(PARTNERS[parts[1]]||[]).concat([parts[0]]);
+  }
+});
+
+function getCityData(raw){
+  const n=raw.toLowerCase().trim().replace(/[^a-z. ]/g,'').replace(/\s+/g,' ');
+  return ALIASES_MAP[n]||null;
+}
+function norm(raw){const d=getCityData(raw);return d?d.name.toLowerCase():raw.toLowerCase().trim();}
+function isTwin(a,b){return norm(a)===norm(b);}
+
+function lookupCorridor(rawA,rawB){
+  const a=norm(rawA),b=norm(rawB);
+  if(isTwin(rawA,rawB)){
+    for(const k of Object.keys(KNOWN)) if(k.endsWith('|twin')&&k.replace('|twin','')===a) return KNOWN[k];
+  }
+  if(KNOWN[a+'|'+b]) return KNOWN[a+'|'+b];
+  if(KNOWN[b+'|'+a]) return KNOWN[b+'|'+a];
+  return null;
+}
+function getAirportNote(rawA,rawB){
+  const a=norm(rawA),b=norm(rawB);
+  if(isTwin(rawA,rawB)){
+    for(const k of Object.keys(AIRPORT_NOTES)) if(k.endsWith('|twin')&&k.replace('|twin','')===a) return AIRPORT_NOTES[k];
+  }
+  return AIRPORT_NOTES[a+'|'+b]||AIRPORT_NOTES[b+'|'+a]||null;
+}
+
+function citiesForSide(side,q){
+  let list=CITIES.slice();
+  if(side==='b'){
+    const other=norm(document.getElementById('city-a').value.trim());
+    const partners=PARTNERS[other]||[];
+    if(partners.length){
+      list=list.slice().sort(function(x,y){
+        const px=partners.indexOf(x.name.toLowerCase())>=0?0:1;
+        const py=partners.indexOf(y.name.toLowerCase())>=0?0:1;
+        return px-py;
+      });
+    }
+  }
+  if(!q||q.length<1) return list;
+  const ql=q.toLowerCase();
+  return list.filter(c=>c.name.toLowerCase().includes(ql)||c.aliases.some(a=>a.includes(ql))).slice(0,8);
+}
+
+function showDropdown(side){
+  const inp=document.getElementById('city-'+side);
+  const dd=document.getElementById('dd-'+side);
+  const q=inp.value.trim();
+  const matches=citiesForSide(side,q);
+  ddActiveIdx[side]=-1;
+  const partners=side==='b'?(PARTNERS[norm(document.getElementById('city-a').value.trim())]||[]):[];
+  let html='';
+  matches.forEach((c,i)=>{
+    const isPartner=partners.indexOf(c.name.toLowerCase())>=0;
+    const tag=isPartner?'✓ known corridor':(c.country==='US/CA'?'US · CA':c.country);
+    html+='<div class="dd-item" data-val="'+c.name+'" onmousedown="selectCity(\''+side+'\',\''+c.name.replace(/'/g,"\\'")+'\')" onmouseover="ddActiveIdx[\''+side+'\']='+i+'">'
+      +'<span class="dd-name">'+c.name+'</span><span class="dd-tag'+(isPartner?' corridor':'')+'">'+tag+'</span></div>';
+  });
+  if(q&&!matches.find(c=>c.name.toLowerCase()===q.toLowerCase())){
+    const safe=q.replace(/[<>&"]/g,'').replace(/'/g,"\\'");
+    html+='<div class="dd-free" onmousedown="selectCity(\''+side+'\',\''+safe+'\')">Use "'+q.replace(/[<>&"]/g,'')+'" — estimated figures</div>';
+  }
+  dd.innerHTML=html;
+  dd.className=html?'dropdown open':'dropdown';
+}
+
+function selectCity(side,val){
+  document.getElementById('city-'+side).value=val;
+  document.getElementById('dd-'+side).className='dropdown';
+  onCityInput();
+  if(side==='a') document.getElementById('city-b').focus();
+}
+
+function swapCities(){
+  const a=document.getElementById('city-a');
+  const b=document.getElementById('city-b');
+  const tmp=a.value; a.value=b.value; b.value=tmp;
+  // Swap fares and currencies to keep them attached to their city
+  const fh=document.getElementById('fare-home'), fa=document.getElementById('fare-away');
+  const tmpF=fh.value; fh.value=fa.value; fa.value=tmpF;
+  const ch=document.getElementById('cur-home'), ca=document.getElementById('cur-away');
+  const tmpC=ch.value; setSelectVal('cur-home',ca.value); setSelectVal('cur-away',tmpC);
+  onCityInput();
+}
+
+function ddKey(e,side){
+  const dd=document.getElementById('dd-'+side);
+  const items=dd.querySelectorAll('.dd-item,.dd-free');
+  if(!items.length) return;
+  if(e.key==='ArrowDown'){e.preventDefault();ddActiveIdx[side]=Math.min(ddActiveIdx[side]+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('active',i===ddActiveIdx[side]));}
+  else if(e.key==='ArrowUp'){e.preventDefault();ddActiveIdx[side]=Math.max(ddActiveIdx[side]-1,0);items.forEach((el,i)=>el.classList.toggle('active',i===ddActiveIdx[side]));}
+  else if(e.key==='Enter'&&ddActiveIdx[side]>=0){e.preventDefault();selectCity(side,items[ddActiveIdx[side]].dataset.val||document.getElementById('city-'+side).value);}
+  else if(e.key==='Escape'){dd.className='dropdown';}
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.field')) document.querySelectorAll('.dropdown').forEach(d=>d.className='dropdown');
+});
+
+/* Trip type — Step 1 */
+function setTrip(t){
+  tripType=t;
+  document.getElementById('topt-oneway').classList.toggle('sel',t==='oneway');
+  document.getElementById('topt-return').classList.toggle('sel',t==='return');
+  document.getElementById('err-trip').className='errmsg';
+  updateParkingLabel();
+}
+
+/* Mode availability driven by corridor — Walk hidden unless it exists.
+   Before any cities are entered, modes look neutral (not greyed) so the
+   empty form doesn't appear broken; selecting a transit mode then prompts
+   for cities instead. */
+function getParkingRate(cityRaw){
+  const d=getCityData(cityRaw);
+  return (d&&d.park)?d.park:DEFAULT_PARKING;
+}
+
+/* Parking applies whenever a car is left at the departure airport:
+   your own car (always), or a rental you keep for the whole trip. */
+function parkingApplies(){
+  if(!mode) return false;
+  if(corridor&&corridor.manual) return false; // the user's own figure covers it
+  if(mode==='owncar') return true;
+  if(mode==='rental'&&tripType==='return') return true;
+  return false;
+}
+
+function updateParkingLabel(){
+  const show=parkingApplies();
+  document.getElementById('parking-field').classList.toggle('on',show);
+  if(!show) return;
+  const cityB=document.getElementById('city-b').value.trim();
+  document.getElementById('parking-label').innerHTML=
+    (cityB?('Airport parking at '+cityB+' (USD/day)'):'Airport parking (USD/day)')
+    +' <span class="ib" onclick="tog(\'tip-parking\')" role="button" tabindex="0" aria-label="About parking">i</span>';
+  const inp=document.getElementById('parking-rate');
+  if(!inp.dataset.touched) inp.value=getParkingRate(cityB);
+}
+
+function refreshModes(){
+  const noCorridor=!corridor;
+  const manual=corridor&&corridor.manual;
+  ['bus','train'].forEach(function(m){
+    const btn=document.getElementById('mopt-'+m);
+    // Neutral before cities; freely selectable on unknown routes (the user
+    // supplies the cost themselves); greyed only when we know it doesn't run.
+    const off=(noCorridor||manual)?false:!corridor[m];
+    btn.classList.toggle('off',off);
+    btn.disabled=off;
+  });
+  const walkBtn=document.getElementById('mopt-walk');
+  const walkAvailable=corridor&&corridor.walk;
+  walkBtn.classList.toggle('hidden',!walkAvailable);
+  walkBtn.disabled=!walkAvailable;
+  document.getElementById('manual-panel').classList.toggle('on',!!manual);
+
+  document.getElementById('ms-owncar').textContent=(noCorridor||manual)
+    ?'Fuel and running costs, plus airport parking while you are away.'
+    :('~$'+Math.round(corridor.km*2*OWN_CAR_PER_KM)+' fuel and running for the round trip, plus parking');
+  document.getElementById('ms-bus').textContent=(noCorridor||manual)
+    ?'Per person — usually cheapest for solo travellers.'
+    :(corridor.bus?('Per person · '+corridor.bus.range+' · ~'+corridor.bus.hrs+' hrs')
+      :'No verified bus service on this corridor.');
+  document.getElementById('ms-train').textContent=(noCorridor||manual)
+    ?'Per person — comfortable, border processed on board.'
+    :(corridor.train?('Per person · '+corridor.train.range+' · ~'+corridor.train.hrs+' hrs')
+      :'No verified train service on this corridor.');
+  if(walkAvailable){
+    document.getElementById('ms-walk').textContent='Per person · '+corridor.walk.range+' · ~'+Math.round(corridor.walk.hrs*60)+' min incl. border';
+  }
+  if(mode&&mode!=='rental'&&mode!=='owncar'&&corridor&&!corridor.manual&&!corridor[mode]){mode=null;updateModeUI();}
+  updateParkingLabel();
+}
+
+function setMode(m){
+  const err=document.getElementById('err-mode');
+  if(m!=='rental'&&!corridor){
+    err.textContent='Enter both cities first — we\'ll check what actually runs on that route.';
+    err.className='errmsg on';
+    return;
+  }
+  const btn=document.getElementById('mopt-'+m);
+  if(btn.disabled) return;
+  mode=m;
+  err.textContent='Select how you\'ll get there.';
+  err.className='errmsg';
+  updateModeUI();
+}
+function updateModeUI(){
+  ['rental','owncar','bus','train','walk'].forEach(function(m){
+    document.getElementById('mopt-'+m).classList.toggle('sel',mode===m);
+  });
+  updateParkingLabel();
+}
+
+function updateModeHints(){
+  const n=parseInt(document.getElementById('travellers').value)||1;
+  document.getElementById('trav-hint').textContent=n===1?'travelling alone':'travelling together';
+  document.getElementById('ms-rental').textContent='Per vehicle — '+(n>=3?'usually the best value for '+n+' people.':'best for groups or continuing to drive.');
+}
+
+function setDefaultCurrencies(rawA,rawB){
+  const da=getCityData(rawA),db=getCityData(rawB);
+  if(da) setSelectVal('cur-home',da.cur);
+  if(db) setSelectVal('cur-away',db.cur);
+  onCurrencyChange();
+}
+function setSelectVal(id,val){const s=document.getElementById(id);if(s)for(let i=0;i<s.options.length;i++)if(s.options[i].value===val){s.selectedIndex=i;break;}}
+function getBaseCur(){return document.getElementById('cur-home').value||'USD';}
+function getRateEstimate(from,to){const usd={USD:1,CAD:0.735,EUR:1.09,GBP:1.27};return usd[from]/usd[to];}
+function toBase(amount,fromCur){
+  if(fromCur===getBaseCur()) return amount;
+  const el=document.getElementById('fx-'+fromCur+'-to-'+getBaseCur());
+  return amount*(el?parseFloat(el.value):getRateEstimate(fromCur,getBaseCur()));
+}
+
+/* FX rows: rebuild ONLY when the set of needed currencies changes.
+   Preserves user-entered rates and removes the input lag. */
+function updateFXRows(){
+  const base=getBaseCur();
+  const curs=new Set();
+  ['cur-home','cur-away','cur-pos'].forEach(id=>{const el=document.getElementById(id);if(el&&el.value!==base)curs.add(el.value);});
+  if(base!=='USD') curs.add('USD'); // corridor prices are stored in USD
+  const sig=base+':'+Array.from(curs).sort().join(',');
+  if(sig===fxSignature) return; // nothing changed — keep existing inputs and values
+  fxSignature=sig;
+  document.getElementById('base-cur-label').textContent=base;
+  document.getElementById('time-cur-label').textContent=base;
+  let html='';
+  curs.forEach(c=>{
+    const est=getRateEstimate(c,base).toFixed(4);
+    html+='<div class="fx-pair"><label for="fx-'+c+'-to-'+base+'">1 '+c+' = ? '+base+'</label>'
+      +'<div class="fx-pair-wrap"><input type="number" id="fx-'+c+'-to-'+base+'" value="'+est+'" step="0.0001" min="0" oninput="updateFareNote()"/>'
+      +'<span class="fx-label">'+base+'/'+c+'</span></div></div>';
+  });
+  document.getElementById('fx-row').innerHTML=html||'<div style="font-size:12px;color:var(--text-3);padding:4px 0;">Both fares in the same currency — no conversion needed.</div>';
+}
+function onCurrencyChange(){updateFXRows();updateFareNote();}
+
+function updateFareNote(){
+  const base=getBaseCur();
+  const sym=CURRENCIES[base]?CURRENCIES[base].sym:'$';
+  const fhVal=parseFloat(document.getElementById('fare-home').value);
+  const faVal=parseFloat(document.getElementById('fare-away').value);
+  const curH=document.getElementById('cur-home').value;
+  const curA=document.getElementById('cur-away').value;
+  document.getElementById('note-home').innerHTML=(fhVal&&curH!==base)?'≈ <strong>'+sym+Math.round(toBase(fhVal,curH)).toLocaleString()+'</strong> '+base:'';
+  document.getElementById('note-away').innerHTML=(faVal&&curA!==base)?'≈ <strong>'+sym+Math.round(toBase(faVal,curA)).toLocaleString()+'</strong> '+base:'';
+  const comp=document.getElementById('fare-comparison');
+  if(fhVal&&faVal){
+    const n=parseInt(document.getElementById('travellers').value)||1;
+    const diff=(toBase(fhVal,curH)-toBase(faVal,curA))*n;
+    comp.style.display='block';
+    comp.innerHTML='Comparing <strong>'+(CURRENCIES[curH]?CURRENCIES[curH].sym:'')+fhVal.toLocaleString()+' '+curH+'</strong> vs <strong>'+(CURRENCIES[curA]?CURRENCIES[curA].sym:'')+faVal.toLocaleString()+' '+curA+'</strong> per person'
+      +(n>1?' × '+n+' travellers':'')
+      +' — fare difference is <strong>'+(diff>=0?'+':'−')+sym+Math.abs(Math.round(diff)).toLocaleString()+' '+base+'</strong> before travel costs.';
+  } else { comp.style.display='none'; }
+}
+
+function onCityInput(){
+  const rawA=document.getElementById('city-a').value.trim();
+  const rawB=document.getElementById('city-b').value.trim();
+  const note=document.getElementById('corridor-note');
+  if(!rawA||!rawB){note.className='corridor-note';corridor=null;refreshModes();return;}
+  const found=lookupCorridor(rawA,rawB);
+  if(found){
+    corridor=Object.assign({},found,{found:true,cityA:rawA,cityB:rawB});
+    note.className='corridor-note on known';
+    document.getElementById('cn-head').textContent=rawA+' → '+rawB+' · known corridor';
+    const dd=corridor.drive_hrs<1?(Math.round(corridor.drive_hrs*60)+' min'):corridor.drive_hrs+(corridor.drive_hrs===1?' hr':' hrs');
+    const modesTxt=['rental car'].concat(corridor.bus?['bus']:[]).concat(corridor.train?['train']:[]).concat(corridor.walk?['walk']:[]).join(' · ');
+    document.getElementById('cn-body').textContent=corridor.km+' km · ~'+dd+' drive each way · border crossing detected · options: '+modesTxt;
+  } else {
+    corridor={found:false,manual:true,border:null,seasonal:{},notes:[],cityA:rawA,cityB:rawB};
+    note.className='corridor-note on estimated';
+    document.getElementById('cn-head').textContent=rawA+' → '+rawB+' · not in our database';
+    document.getElementById('cn-body').textContent='We don\'t have verified figures for this route, so we won\'t invent them. Enter your own cost and travel time below and we\'ll calculate the rest.';
+  }
+  setDefaultCurrencies(rawA,rawB);
+  refreshModes();
+  document.getElementById('lbl-fare-home').textContent='Fare from '+rawA;
+  document.getElementById('lbl-fare-away').textContent='Fare from '+rawB;
+}
+
+function tog(id){document.getElementById(id).classList.toggle('on');}
+function toggleFlight(){document.getElementById('flight-field').classList.toggle('on',document.getElementById('tog-flight').checked);onCurrencyChange();}
+function toggleMore(){const c=document.getElementById('more-content');const a=document.getElementById('more-arrow');a.classList.toggle('open',c.classList.toggle('on'));}
+function fmtC(n,cur){const s=CURRENCIES[cur]?CURRENCIES[cur].sym:'';return s+Math.abs(Math.round(n)).toLocaleString('en-US')+' '+cur;}
+
+function shareResult(){
+  const params=new URLSearchParams({
+    a:document.getElementById('city-a').value,
+    b:document.getElementById('city-b').value,
+    tt:tripType||'',
+    m:mode||'',
+    tv:document.getElementById('travellers').value,
+    td:document.getElementById('trip-days').value,
+    pk:document.getElementById('parking-rate').value,
+    fh:document.getElementById('fare-home').value,
+    fa:document.getElementById('fare-away').value,
+    ch:document.getElementById('cur-home').value,
+    ca:document.getElementById('cur-away').value,
+  });
+  const url=window.location.origin+window.location.pathname+'?'+params.toString();
+  navigator.clipboard.writeText(url).then(function(){
+    const c=document.getElementById('share-confirm');
+    c.className='share-confirm on';
+    setTimeout(function(){c.className='share-confirm';},3000);
+  });
+}
+
+function loadFromURL(){
+  const p=new URLSearchParams(window.location.search);
+  if(!p.get('a')) return;
+  document.getElementById('city-a').value=p.get('a')||'';
+  document.getElementById('city-b').value=p.get('b')||'';
+  onCityInput();
+  if(p.get('tt')) setTrip(p.get('tt'));
+  if(p.get('m')) setMode(p.get('m'));
+  if(p.get('tv')) document.getElementById('travellers').value=p.get('tv');
+  if(p.get('td')) document.getElementById('trip-days').value=p.get('td');
+  if(p.get('pk')){const pi=document.getElementById('parking-rate');pi.value=p.get('pk');pi.dataset.touched='1';}
+  updateModeHints();
+  if(p.get('fh')) document.getElementById('fare-home').value=p.get('fh');
+  if(p.get('fa')) document.getElementById('fare-away').value=p.get('fa');
+  if(p.get('ch')) setSelectVal('cur-home',p.get('ch'));
+  if(p.get('ca')) setSelectVal('cur-away',p.get('ca'));
+  onCurrencyChange();
+  updateParkingLabel();
+  if(p.get('a')&&p.get('b')&&p.get('fh')&&p.get('fa')&&p.get('m')&&p.get('tt')) calculate();
+}
+window.addEventListener('DOMContentLoaded',function(){updateModeHints();refreshModes();loadFromURL();});
+
+function getQuote(){
+  const rawA=document.getElementById('city-a').value.trim();
+  const rawB=document.getElementById('city-b').value.trim();
+  if(mode==='owncar') return;
+  if(mode==='rental'||!mode){
+    const base='https://www.rentalcars.com/SearchResults.do';
+    const params=new URLSearchParams({
+      affiliateCode:AFFILIATE_ID,
+      puCity:rawA,
+      doCity:(tripType==='return')?rawA:rawB,
+    });
+    window.open(base+'?'+params.toString(),'_blank','noopener');
+  } else if(mode==='bus'){
+    window.open('https://www.flixbus.com/','_blank','noopener');
+  } else if(mode==='train'){
+    window.open('https://www.amtrak.com/','_blank','noopener');
+  }
+}
+
+/* Reset everything back to a fresh form */
+function resetAll(){
+  // Cities
+  document.getElementById('city-a').value='';
+  document.getElementById('city-b').value='';
+  corridor=null;
+  document.getElementById('corridor-note').className='corridor-note';
+  document.getElementById('lbl-fare-home').textContent='Fare from starting city';
+  document.getElementById('lbl-fare-away').textContent='Fare from departure city';
+  // Trip + mode
+  tripType=null;mode=null;
+  document.getElementById('topt-oneway').classList.remove('sel');
+  document.getElementById('topt-return').classList.remove('sel');
+  updateModeUI();
+  refreshModes();
+  // Travellers
+  document.getElementById('travellers').value=1;
+  updateModeHints();
+  // Fares + currencies
+  document.getElementById('fare-home').value='';
+  document.getElementById('fare-away').value='';
+  setSelectVal('cur-home','USD');
+  setSelectVal('cur-away','USD');
+  document.getElementById('note-home').innerHTML='';
+  document.getElementById('note-away').innerHTML='';
+  document.getElementById('fare-comparison').style.display='none';
+  // Flight
+  document.getElementById('tog-flight').checked=false;
+  document.getElementById('flight-field').classList.remove('on');
+  document.getElementById('pos-fare').value='';
+  setSelectVal('cur-pos','USD');
+  // More options
+  document.getElementById('timeval').value='';
+  fxSignature='';
+  onCurrencyChange();
+  // Trip length & parking
+  document.getElementById('trip-days').value=7;
+  const pInp=document.getElementById('parking-rate');
+  pInp.value='';delete pInp.dataset.touched;
+  document.getElementById('parking-field').classList.remove('on');
+  // Manual route entry
+  document.getElementById('manual-cost').value='';
+  document.getElementById('manual-hrs').value='';
+  setSelectVal('cur-manual','USD');
+  document.getElementById('manual-panel').classList.remove('on');
+  document.getElementById('err-manual').className='errmsg';
+  document.getElementById('warns-other-wrap').style.display='none';
+  // Errors
+  ['err-cities','err-trip','err-mode','err-fares'].forEach(function(id){document.getElementById(id).className='errmsg';});
+  // Results + feedback
+  document.getElementById('results').className='results';
+  document.getElementById('feedback-card').className='feedback-card';
+  fbChoice=null;
+  // Strip URL params so a shared link doesn't repopulate
+  if(window.location.search){
+    window.history.replaceState({},'',window.location.origin+window.location.pathname);
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleOtherNotes(){
+  const c=document.getElementById('warns-other');
+  const a=document.getElementById('other-arrow');
+  const open=c.style.display==='none';
+  c.style.display=open?'':'none';
+  a.classList.toggle('open',open);
+}
+
+function selectFeedback(el,val){
+  fbChoice=val;
+  document.querySelectorAll('.fb-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('fb-text').className='fb-text on';
+  document.getElementById('fb-submit').className='fb-submit on';
+}
+function submitFeedback(){
+  if(!fbChoice) return;
+  const text=document.getElementById('fb-text').value.trim();
+  if(GOOGLE_FORM_URL!=='YOUR_GOOGLE_FORM_LINK'){
+    const formUrl=GOOGLE_FORM_URL.replace(/\/$/,'')+'/formResponse?'+FB_FIELD_CHOICE+'='+encodeURIComponent(fbChoice)+'&'+FB_FIELD_TEXT+'='+encodeURIComponent(text)+'&submit=Submit';
+    fetch(formUrl,{method:'POST',mode:'no-cors'}).catch(function(){});
+  }
+  document.querySelectorAll('.fb-opt').forEach(o=>o.style.display='none');
+  document.getElementById('fb-text').style.display='none';
+  document.getElementById('fb-submit').style.display='none';
+  document.getElementById('fb-thanks').className='fb-thanks on';
+}
+
+function calculate(){
+  let valid=true;
+  const rawA=document.getElementById('city-a').value.trim();
+  const rawB=document.getElementById('city-b').value.trim();
+  const errC=document.getElementById('err-cities');
+  if(!rawA||!rawB){errC.textContent='Enter both cities.';errC.className='errmsg on';valid=false;}
+  else{errC.className='errmsg';onCityInput();}
+  if(!tripType){document.getElementById('err-trip').className='errmsg on';valid=false;}
+  if(!mode){const em=document.getElementById('err-mode');em.textContent='Select how you\'ll get there.';em.className='errmsg on';valid=false;}
+  const errM=document.getElementById('err-manual');
+  if(corridor&&corridor.manual){
+    const mc=parseFloat(document.getElementById('manual-cost').value);
+    const mh=parseFloat(document.getElementById('manual-hrs').value);
+    if(!mc||isNaN(mh)){errM.className='errmsg on';valid=false;}
+    else{errM.className='errmsg';}
+  } else if(errM){errM.className='errmsg';}
+  const fareHomeRaw=parseFloat(document.getElementById('fare-home').value);
+  const fareAwayRaw=parseFloat(document.getElementById('fare-away').value);
+  const errF=document.getElementById('err-fares');
+  if(!fareHomeRaw||!fareAwayRaw){errF.textContent='Enter both fares.';errF.className='errmsg on';valid=false;}
+  else{errF.className='errmsg';}
+  if(!valid) return;
+
+  const base=getBaseCur();
+  const baseSym=CURRENCIES[base]?CURRENCIES[base].sym:'$';
+  const curH=document.getElementById('cur-home').value;
+  const curA=document.getElementById('cur-away').value;
+  const travellers=Math.max(1,parseInt(document.getElementById('travellers').value)||1);
+  const fareSaving=(toBase(fareHomeRaw,curH)-toBase(fareAwayRaw,curA))*travellers;
+  const timeVal=parseFloat(document.getElementById('timeval').value)||0;
+  const hasFlight=document.getElementById('tog-flight').checked;
+  const posFareRaw=hasFlight?(parseFloat(document.getElementById('pos-fare').value)||0):0;
+  const posFare=toBase(posFareRaw,document.getElementById('cur-pos').value);
+
+  let travelCost=0, travelHrs=0, travelLegLabel='', modeLabel='', costRows=[], quoteBtnLabel='Get real rental quote';
+  let rentalStrategy=null, rentalAltNote=null;
+  const days=Math.max(1,parseInt(document.getElementById('trip-days').value)||1);
+  const parkPerDay=toBase(parseFloat(document.getElementById('parking-rate').value)||getParkingRate(rawB),'USD');
+  const legs=tripType==='return'?2:1;
+  if(corridor.manual){
+    const mc=parseFloat(document.getElementById('manual-cost').value)||0;
+    const mh=parseFloat(document.getElementById('manual-hrs').value)||0;
+    travelCost=toBase(mc,document.getElementById('cur-manual').value);
+    travelHrs=mh*legs;
+    modeLabel=(mode==='rental'?'rental':mode)+(tripType==='return'?' there and back':' one way');
+    travelLegLabel=tripType==='oneway'?'one way':'both ways';
+    costRows.push({l:'Cost of getting there (your figure)',v:-travelCost});
+    quoteBtnLabel=mode==='rental'?'Get real rental quote':(mode==='bus'?'Check bus schedules':(mode==='train'?'Check train schedules':null));
+  } else if(mode==='owncar'){
+    // Your own car always waits for you at the airport, so the drive is a
+    // round trip regardless of the trip-type answer, and parking is charged
+    // for every day you're away — usually the dominant cost.
+    modeLabel='drive in your own car';
+    const running=corridor.km*2*OWN_CAR_PER_KM;
+    const parkTotal=parkPerDay*days;
+    travelCost=running+parkTotal;
+    travelHrs=(corridor.drive_hrs+corridor.border_hrs)*2;
+    travelLegLabel='both ways';
+    costRows.push({l:'Fuel & running ('+(corridor.km*2)+' km round trip)',v:-running});
+    costRows.push({l:'Airport parking ('+days+' day'+(days===1?'':'s')+' × '+fmtC(parkPerDay,base)+')',v:-parkTotal});
+    quoteBtnLabel=null;
+  } else if(mode==='rental'){
+    const r=corridor.rental;
+    const daily=toBase(r.daily,'USD');
+    const dropfee=toBase(r.dropfee,'USD');
+    const xfee=corridor.border?toBase(r.xfee,'USD'):0;
+    if(tripType==='oneway'){
+      modeLabel='one-way rental';
+      travelCost=daily+dropfee+xfee;
+      travelHrs=corridor.drive_hrs+corridor.border_hrs;
+      travelLegLabel='one way';
+      costRows.push({l:'One-way rental, 1 day (per vehicle)',v:-daily});
+      costRows.push({l:'Drop-off fee',v:-dropfee});
+      if(xfee>0) costRows.push({l:'Cross-border fee (est.)',v:-xfee});
+    } else {
+      // Two honest ways to do this. Keeping the car means paying for every
+      // day it sits at the airport; two separate one-ways means two drop
+      // fees but no idle days. We price both and use whichever is cheaper.
+      const keepDays=days+1;
+      const keepCost=daily*keepDays+xfee+parkPerDay*days;
+      const twoOneWays=2*(daily+dropfee+xfee);
+      travelHrs=(corridor.drive_hrs+corridor.border_hrs)*2;
+      travelLegLabel='both ways';
+      if(twoOneWays<=keepCost){
+        rentalStrategy='two';
+        modeLabel='two one-way rentals';
+        travelCost=twoOneWays;
+        costRows.push({l:'Two one-way rentals (1 day each)',v:-(daily*2)});
+        costRows.push({l:'Drop-off fee × 2',v:-(dropfee*2)});
+        if(xfee>0) costRows.push({l:'Cross-border fee × 2 (est.)',v:-(xfee*2)});
+        rentalAltNote='Keeping one car for the whole trip would cost '+fmtC(keepCost,base)+' once '+days+' days of parking and idle rental days are counted — so we\'ve priced two separate one-way rentals instead.';
+      } else {
+        rentalStrategy='keep';
+        modeLabel='return rental';
+        travelCost=keepCost;
+        costRows.push({l:'Rental, '+keepDays+' days (per vehicle)',v:-(daily*keepDays)});
+        if(xfee>0) costRows.push({l:'Cross-border fee (est.)',v:-xfee});
+        costRows.push({l:'Airport parking ('+days+' day'+(days===1?'':'s')+' × '+fmtC(parkPerDay,base)+')',v:-(parkPerDay*days)});
+        rentalAltNote='Two separate one-way rentals would cost '+fmtC(twoOneWays,base)+' — keeping one car is cheaper for a trip this length.';
+      }
+    }
+  } else {
+    const t=corridor[mode];
+    modeLabel=mode+(tripType==='return'?' round trip':' one-way');
+    const perPerson=toBase(t.price,'USD');
+    travelCost=perPerson*travellers*legs;
+    travelHrs=t.hrs*legs;
+    travelLegLabel=tripType==='oneway'?'one way':'round trip';
+    const modeNoun=mode==='walk'?'Bridge toll':(mode==='bus'?'Bus tickets':'Train tickets');
+    costRows.push({l:modeNoun+' ('+travellers+' × '+(legs===2?'2 × ':'')+fmtC(perPerson,base)+')',v:-travelCost});
+    quoteBtnLabel=mode==='bus'?'Check bus schedules':(mode==='train'?'Check train schedules':null);
+  }
+
+  const timeCost=timeVal*travelHrs;
+  const totalCost=travelCost+posFare+timeCost;
+  const netBase=fareSaving-totalCost;
+  const secCur=base==='USD'?'CAD':base==='CAD'?'USD':null;
+  const netSec=secCur?netBase*getRateEstimate(base,secCur):null;
+
+  const cls=netBase>50?'go':netBase<-30?'no':'maybe';
+  document.getElementById('vwrap').className='vwrap '+cls;
+  document.getElementById('vbadge').textContent=netBase>50?'Worth it':netBase<-30?'Not worth it':'Borderline';
+  document.getElementById('vamt').textContent=(netBase>=0?'+':'−')+fmtC(Math.abs(netBase),base);
+  document.getElementById('vsub').textContent=netSec
+    ?(netSec>=0?'+':'−')+fmtC(Math.abs(netSec),secCur)+' · '+(netBase>=0?'you come out ahead':'costs more than you save')
+    :(netBase>=0?'you come out ahead':'costs more than you save');
+
+  const quoteBtn=document.getElementById('quote-btn');
+  if(quoteBtnLabel){quoteBtn.style.display='';quoteBtn.textContent=quoteBtnLabel;}
+  else{quoteBtn.style.display='none';}
+
+  const travTxt=travellers>1?' for '+travellers+' travellers':'';
+  let story='';
+  if(fareSaving<=0){story='<strong>The fare from '+rawB+' is already higher than '+rawA+'.</strong> There is no saving to chase — flying from your usual airport is cheaper.';}
+  else if(netBase>50){story='The fare saving is <strong>'+fmtC(fareSaving,base)+'</strong>'+travTxt+'. After the '+modeLabel+' ('+rawA+' → '+rawB+(tripType==='return'?' and back':'')+')'+(hasFlight&&posFare>0?', your flight to get there,':'')+(timeVal>0?' and your time,':'')+' you still pocket <strong>'+fmtC(netBase,base)+'</strong>. The hop makes sense.';}
+  else if(netBase>=-30){story='The fare saving is <strong>'+fmtC(fareSaving,base)+'</strong>'+travTxt+' but after the '+modeLabel+(hasFlight&&posFare>0?', flight to get there,':'')+(timeVal>0?' and time cost,':'')+' you are close to break-even at <strong>'+(netBase>=0?'+':'−')+fmtC(Math.abs(netBase),base)+'</strong>. A price change or longer border wait could tip this to a loss.';}
+  else{story='The fare saving is <strong>'+fmtC(fareSaving,base)+'</strong>'+travTxt+' but the total cost to get there is <strong>'+fmtC(totalCost,base)+'</strong>. You would lose <strong>'+fmtC(Math.abs(netBase),base)+'</strong> compared to flying from '+rawA+'.';}
+  document.getElementById('narr').innerHTML=story;
+
+  document.getElementById('m-saving').textContent=(fareSaving>=0?'+':'−')+fmtC(Math.abs(fareSaving),base);
+  document.getElementById('m-saving-s').textContent=travellers>1?travellers+' travellers':'before costs';
+  document.getElementById('m-costs').textContent='−'+fmtC(totalCost,base);
+  document.getElementById('m-costs-s').textContent='by '+(mode==='rental'?'rental car':(mode==='owncar'?'own car':mode));
+  const dd2=travelHrs<1?(Math.round(travelHrs*60)+'min'):(Number.isInteger(travelHrs)?travelHrs+'h':travelHrs.toFixed(1)+'h');
+  document.getElementById('m-drive').textContent=dd2;
+  document.getElementById('m-drive-s').textContent=travelLegLabel;
+  if(netSec){document.getElementById('m-sec').textContent=(netSec>=0?'+':'−')+fmtC(Math.abs(netSec),secCur);document.getElementById('m-sec-s').textContent='in '+secCur;}
+  else{document.getElementById('m-sec').textContent=(netBase>=0?'+':'−')+fmtC(Math.abs(netBase),base);document.getElementById('m-sec-s').textContent='net';}
+
+  const rows=[{l:'Fare saving'+(travellers>1?' ('+travellers+' travellers)':''),v:fareSaving}]
+    .concat(costRows)
+    .concat((hasFlight&&posFare>0)?[{l:'Flight to reach '+rawA,v:-posFare}]:[])
+    .concat(timeVal>0?[{l:'Time cost ('+travelHrs.toFixed(1)+' hrs × '+baseSym+timeVal+'/hr)',v:-timeCost}]:[])
+    .concat([{l:'Net saving / loss',v:netBase,tot:true}])
+    .concat(netSec?[{l:'Net in '+secCur,v:netSec,tot:true,sc:secCur}]:[]);
+  document.getElementById('bk').innerHTML=rows.map(function(r){
+    return '<div class="bkr '+(r.tot?'tot':'')+'"><span class="bkl">'+r.l+'</span>'
+      +'<span class="bkv '+(r.v>0?'pos':r.v<0?'neg':'')+'">'+(r.v>=0?'+':'−')+fmtC(Math.abs(r.v),r.sc||base)+'</span></div>';
+  }).join('');
+  const modeData=(mode!=='rental'&&mode!=='owncar'&&corridor[mode])||null;
+  document.getElementById('bk-note').textContent=corridor.found
+    ?((modeData?('Fare range '+modeData.range+' · operators: '+modeData.ops+'. '):'')+'Figures are typical for this corridor — verify with the provider before booking.')
+    :'Figures are estimates — get a real quote before deciding.';
+
+  const warns=[];
+  if(rentalAltNote) warns.push({type:'amber',t:'Cheaper rental strategy',b:rentalAltNote});
+  if(mode==='rental'&&tripType==='oneway') warns.push({type:'amber',t:'Getting back afterwards',b:'A one-way rental leaves you in '+rawB+' with no car. If your return flight lands back in '+rawB+', you\'ll need to budget a second trip home — try "there and back" instead to price that properly.'});
+  if(corridor.border&&mode==='owncar'){
+    warns.push({type:'red',t:'Your insurance at the border',b:'Confirm your own policy covers you across the border and get proof of coverage before you go. BC requires a minimum of C$200,000 third-party liability; most US policies extend to Canada but check your declarations page rather than assuming.'});
+  }
+  if(corridor.border){
+    if(mode==='rental'){
+      warns.push({type:'red',t:'Cross-border rental — confirm before booking',b:'Not all rental companies allow vehicles to cross the border. Confirm explicitly when booking. You must carry the rental agreement at the crossing.'});
+      warns.push({type:'red',t:'Insurance changes at the border',b:'Your rental insurance coverage may change at the border. Ask the rental company what is covered in both countries before you drive.'});
+      warns.push({type:'amber',t:'Border wait time',b:'Without NEXUS, add 30–90 min at the border each way — more on weekends and holidays. NEXUS lanes typically clear in under 10 min.'});
+    } else if(mode==='owncar'){
+      warns.push({type:'amber',t:'Border wait time',b:'Without NEXUS, add 30–90 min at the border each way — more on weekends and holidays. NEXUS lanes typically clear in under 10 min.'});
+      warns.push({type:'amber',t:'Leaving a car at the airport',b:'Long stays mean weather, dead batteries and (rarely) break-ins. Off-airport lots with shuttles are usually cheaper than the on-site economy rate used here.'});
+    } else if(mode==='bus'||mode==='train'){
+      warns.push({type:'amber',t:'Border processing',b:'Everyone on board clears immigration '+(mode==='train'?'on the train or':'at the crossing —')+' the whole '+mode+' waits for the slowest passenger. Schedules build this in but delays happen.'});
+      warns.push({type:'amber',t:'Fixed schedules',b:'Miss the '+mode+' and you wait for the next departure. Build buffer before your flight — do not book the last service of the day that connects.'});
+      warns.push({type:'amber',t:'Luggage limits',b:'Typically one checked bag and one carry-on included per person. Extra or oversized luggage costs more — check the operator\'s policy.'});
+    } else if(mode==='walk'){
+      warns.push({type:'amber',t:'On foot across the border',b:'You still clear full immigration on foot. Carry your passport and any documents for children travelling with you.'});
+      warns.push({type:'amber',t:'Luggage on foot',b:'You are carrying everything you bring. With heavy luggage, a taxi to and from each side of the bridge may be worth adding.'});
+    }
+    warns.push({type:'amber',t:'Passport required',b:'Valid passport needed. Enhanced Driver\'s Licences are accepted at some US/Canada land crossings.'});
+  }
+  if(corridor.seasonal){
+    const seasonalNotes=Object.values(corridor.seasonal);
+    if(seasonalNotes.length){
+      warns.push({type:'amber',t:'Seasonal notes',b:seasonalNotes.join('<br><br>')});
+    }
+  }
+  const airNote=getAirportNote(rawA,rawB);
+  if(airNote) warns.push({type:'amber',t:'Route intelligence',b:airNote});
+  if(curH!==curA) warns.push({type:'amber',t:'Mixed currencies',b:'You are comparing fares in different currencies ('+curH+' vs '+curA+'). The conversion rate used is an estimate — check the real rate on the day you book.'});
+  (corridor.notes||[]).forEach(function(n){warns.push({type:'amber',t:'Corridor note',b:n});});
+  if(modeData&&modeData.estimated) warns.push({type:'amber',t:'Less verified',b:'Service on this corridor is less frequent and our fare figure is a rough estimate — check the operator\'s schedule and price before relying on it.'});
+  if(fareSaving>0&&fareSaving<toBase(80,'USD')) warns.push({type:'amber',t:'Thin margin',b:'Small fare difference. A price change, longer border wait, or FX shift could turn this into a loss.'});
+  if(hasFlight&&posFare>0) warns.push({type:'amber',t:'Flight timing risk',b:'A delay on your flight to '+rawA+' could cascade into missing your main departure from '+rawB+'. Build in at least 3 hours of buffer.'});
+  if(corridor.manual) warns.push({type:'amber',t:'Your own figures',b:'This route isn\'t in our database — the cost and travel time above are the ones you entered, so the result is only as good as those numbers.'});
+
+  const renderWarn=function(w){
+    return '<div class="warn '+w.type+'"><div class="wt">'+w.t+'</div><div class="wb">'+w.b+'</div></div>';
+  };
+  const reds=warns.filter(function(w){return w.type==='red';});
+  const ambers=warns.filter(function(w){return w.type!=='red';});
+  document.getElementById('warns').innerHTML=reds.map(renderWarn).join('');
+  const otherWrap=document.getElementById('warns-other-wrap');
+  if(ambers.length){
+    otherWrap.style.display='';
+    document.getElementById('other-notes-label').textContent='Other notes ('+ambers.length+')';
+    document.getElementById('warns-other').innerHTML=ambers.map(renderWarn).join('');
+    document.getElementById('warns-other').style.display='none';
+    document.getElementById('other-arrow').classList.remove('open');
+  } else {
+    otherWrap.style.display='none';
+  }
+  document.getElementById('foot').innerHTML='All amounts converted to '+base+' for comparison. FX rates are estimates — adjust in More Options if needed. Rental, bus and train figures based on typical published rates. Last data review: July 2026.';
+  document.getElementById('results').className='results on';
+
+  fbChoice=null;
+  document.querySelectorAll('.fb-opt').forEach(function(o){o.classList.remove('sel');o.style.display='';});
+  document.getElementById('fb-text').className='fb-text';
+  document.getElementById('fb-text').value='';
+  document.getElementById('fb-text').style.display='';
+  document.getElementById('fb-submit').className='fb-submit';
+  document.getElementById('fb-submit').style.display='';
+  document.getElementById('fb-thanks').className='fb-thanks';
+  document.getElementById('feedback-card').className='feedback-card';
+
+  setTimeout(function(){document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});},50);
+  setTimeout(function(){document.getElementById('feedback-card').className='feedback-card on';},3000);
+}
+</script>
+</body>
+</html>
